@@ -1,0 +1,10 @@
+navigation_adapter_type: "move_base_action"
+move_base_action_name: "/move_base"
+wait_for_action_server_sec: 5.0
+pose_source_type: "amcl_pose"
+comparison_frame: "map"
+route:
+  - {name: "zone_a", x: 1.0, y: 0.0, yaw_deg: 0.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: ""}
+  - {name: "zone_b", x: 2.0, y: 0.0, yaw_deg: 0.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: ""}
+  - {name: "zone_c", x: 2.0, y: -1.0, yaw_deg: -90.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: ""}
+  - {name: "zone_d", x: 1.0, y: -1.0, yaw_deg: 180.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: ""}

@@ -1,0 +1,12 @@
+mission_state_topic: "/recon/mission_state"
+mission_state_typed_topic: "/recon/mission_state_typed"
+zone_capture_topic: "/recon/zone_capture_result"
+zone_capture_typed_topic: "/recon/zone_capture_result_typed"
+frame_region_counts_topic: "/recon/zone_counts"
+current_zone_topic: "/recon/current_zone"
+health_topic: "/recon/health"
+summary_snapshot_topic: "/recon/summary_snapshot"
+output_root: "~/.ros/ruikang_recon"
+writer_queue_size: 512
+writer_rotate_max_bytes: 5242880
+writer_rotate_keep: 3

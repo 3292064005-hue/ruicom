@@ -1,0 +1,7 @@
+std_msgs/Header header
+string source_frame
+string detector_type
+string schema_version
+uint32 source_image_width
+uint32 source_image_height
+ruikang_recon_baseline/Detection[] detections

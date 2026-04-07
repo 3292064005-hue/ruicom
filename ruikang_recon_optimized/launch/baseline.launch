@@ -1,0 +1,21 @@
+<launch>
+  <node pkg="ruikang_recon_baseline" type="vision_counter_node.py" name="vision_counter_node" output="screen">
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/common/vision.yaml" />
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/profiles/baseline/vision.yaml" />
+  </node>
+
+  <node pkg="ruikang_recon_baseline" type="mission_manager_node.py" name="mission_manager_node" output="screen">
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/common/mission.yaml" />
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/profiles/baseline/mission.yaml" />
+  </node>
+
+  <node pkg="ruikang_recon_baseline" type="mission_recorder_node.py" name="mission_recorder_node" output="screen">
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/common/recorder.yaml" />
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/profiles/baseline/recorder.yaml" />
+  </node>
+
+  <node pkg="ruikang_recon_baseline" type="cmd_safety_mux_node.py" name="cmd_safety_mux_node" output="screen">
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/common/safety.yaml" />
+    <rosparam command="load" file="$(find ruikang_recon_baseline)/config/profiles/baseline/safety.yaml" />
+  </node>
+</launch>

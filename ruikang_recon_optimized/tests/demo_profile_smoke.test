@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find ruikang_recon_baseline)/launch/demo_synthetic.launch" />
+  <test test-name="demo_profile_smoke" pkg="ruikang_recon_baseline" type="demo_pipeline_smoke.py" time-limit="20.0" />
+</launch>

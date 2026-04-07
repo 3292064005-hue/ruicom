@@ -1,0 +1,8 @@
+{
+  "input_size": 640,
+  "class_names": ["friendly", "enemy", "hostage"],
+  "parser_type": "yolo_v5_like",
+  "confidence_threshold": 0.35,
+  "score_threshold": 0.25,
+  "nms_threshold": 0.45
+}
