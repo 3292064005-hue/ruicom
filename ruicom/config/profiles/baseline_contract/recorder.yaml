@@ -1,0 +1,9 @@
+profile_role: "contract"
+time_source_mode: "ros"
+lifecycle_managed: false
+recorder_authoritative_input: "auto"
+snapshot_flush_hz: 4.0
+snapshot_flush_on_state_change_only: false
+terminal_finalize_policy: "quiesced"
+terminal_quiesce_sec: 0.2
+allow_final_rewrite_after_finalize: false

@@ -1,0 +1,5 @@
+profile_role: deploy
+lifecycle_managed: true
+require_fresh_estop: true
+command_timeout_sec: 0.4
+require_output_feedback: true

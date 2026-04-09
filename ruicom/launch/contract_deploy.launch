@@ -1,0 +1,61 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="enable_synthetic" default="false" />
+  <arg name="enable_vision" default="true" />
+  <arg name="enable_mission" default="true" />
+  <arg name="enable_recorder" default="true" />
+  <arg name="enable_safety" default="true" />
+  <arg name="output_root" default="" />
+  <arg name="profile_synthetic_config" default="" />
+  <arg name="camera_topic" default="" />
+  <arg name="detections_topic" default="" />
+  <arg name="odom_topic" default="" />
+  <arg name="amcl_pose_topic" default="" />
+  <arg name="move_base_action_name" default="" />
+  <arg name="use_sim_time" default="false" />
+  <arg name="model_manifest_path" default="" />
+  <arg name="vendor_runtime_contract_path" default="" />
+  <arg name="upstream_feedback_topic" default="" />
+  <arg name="upstream_odom_topic" default="" />
+  <arg name="upstream_control_mode_topic" default="" />
+  <arg name="upstream_estop_topic" default="" />
+  <arg name="upstream_navigation_status_topic" default="" />
+  <arg name="upstream_command_topic" default="" />
+  <arg name="enable_platform_bridge" default="true" />
+  <arg name="field_asset_id" default="" />
+  <arg name="field_asset_path" default="" />
+  <arg name="field_asset_package_root" default="" />
+  <arg name="require_verified_field_asset" default="true" />
+  <arg name="required_field_asset_verification_scope" default="contract" />
+
+  <include file="$(find ruikang_recon_baseline)/launch/deploy.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="enable_synthetic" value="$(arg enable_synthetic)" />
+    <arg name="enable_vision" value="$(arg enable_vision)" />
+    <arg name="enable_mission" value="$(arg enable_mission)" />
+    <arg name="enable_recorder" value="$(arg enable_recorder)" />
+    <arg name="enable_safety" value="$(arg enable_safety)" />
+    <arg name="enable_platform_bridge" value="$(arg enable_platform_bridge)" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="profile_synthetic_config" value="$(arg profile_synthetic_config)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="detections_topic" value="$(arg detections_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="field_asset_id" value="$(arg field_asset_id)" />
+    <arg name="field_asset_path" value="$(arg field_asset_path)" />
+    <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+    <arg name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
+    <arg name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+    <arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
+    <arg name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />
+    <arg name="upstream_control_mode_topic" value="$(arg upstream_control_mode_topic)" />
+    <arg name="upstream_estop_topic" value="$(arg upstream_estop_topic)" />
+    <arg name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />
+    <arg name="upstream_command_topic" value="$(arg upstream_command_topic)" />
+  </include>
+</launch>

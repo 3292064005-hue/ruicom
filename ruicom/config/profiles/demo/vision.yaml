@@ -1,0 +1,7 @@
+frame_region_adapter_type: named_regions
+strict_backend: false
+profile_role: demo
+detector_schema_policy: subset_allowed
+field_asset_id: demo_quad_zones
+
+required_field_asset_verification_scope: contract

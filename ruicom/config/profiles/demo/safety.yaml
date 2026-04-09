@@ -1,0 +1,4 @@
+profile_role: "demo"
+lifecycle_managed: false
+require_fresh_estop: false
+warn_on_idle_command_stale: false

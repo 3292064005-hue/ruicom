@@ -1,0 +1,29 @@
+input_topic: cmd_vel_raw
+input_sources:
+- name: autonomy
+  topic: cmd_vel_raw
+  priority: 100
+output_topic: cmd_vel
+estop_topic: recon/estop
+control_mode_topic: recon/control_mode
+safety_state_topic: recon/safety_state
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+max_linear_x: 0.45
+max_linear_y: 0.45
+max_angular_z: 1.2
+command_timeout_sec: 0.5
+estop_timeout_sec: 2.0
+require_fresh_estop: false
+default_mode: AUTO
+publish_rate_hz: 20.0
+time_source_mode: ros
+health_emit_mode: edge
+health_heartbeat_hz: 1.0
+warn_on_idle_command_stale: false
+output_feedback_topic: ''
+output_feedback_timeout_sec: 1.0
+require_output_feedback: false
+profile_role: integration
+lifecycle_managed: false
+platform_adapter_type: generic_ros_nav

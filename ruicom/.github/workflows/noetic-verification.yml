@@ -1,0 +1,16 @@
+name: Noetic Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  noetic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build verification image from Dockerfile.noetic
+        run: docker build -f Dockerfile.noetic -t ruikang-noetic-verify .
+      - name: Run repository Noetic verification container
+        run: docker run --rm ruikang-noetic-verify bash tools/run_noetic_verification.sh

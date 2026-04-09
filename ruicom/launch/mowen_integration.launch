@@ -1,0 +1,37 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="enable_vision" default="true" />
+  <arg name="enable_mission" default="true" />
+  <arg name="enable_recorder" default="true" />
+  <arg name="enable_safety" default="true" />
+  <arg name="output_root" default="" />
+  <arg name="camera_topic" default="" />
+  <arg name="detections_topic" default="" />
+  <arg name="odom_topic" default="" />
+  <arg name="amcl_pose_topic" default="" />
+  <arg name="move_base_action_name" default="" />
+  <arg name="use_sim_time" default="false" />
+  <arg name="enable_platform_bridge" default="true" />
+  <arg name="field_asset_id" default="" />
+  <arg name="field_asset_path" default="" />
+  <arg name="field_asset_package_root" default="" />
+
+  <include file="$(find ruikang_recon_baseline)/launch/integration.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="enable_vision" value="$(arg enable_vision)" />
+    <arg name="enable_mission" value="$(arg enable_mission)" />
+    <arg name="enable_recorder" value="$(arg enable_recorder)" />
+    <arg name="enable_safety" value="$(arg enable_safety)" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="detections_topic" value="$(arg detections_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="enable_platform_bridge" value="$(arg enable_platform_bridge)" />
+    <arg name="field_asset_id" value="$(arg field_asset_id)" />
+    <arg name="field_asset_path" value="$(arg field_asset_path)" />
+    <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+  </include>
+</launch>

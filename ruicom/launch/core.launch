@@ -1,0 +1,151 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="enable_synthetic" default="false" />
+  <arg name="enable_vision" default="true" />
+  <arg name="enable_mission" default="true" />
+  <arg name="enable_recorder" default="true" />
+  <arg name="enable_safety" default="true" />
+  <arg name="enable_system_manager" default="false" />
+  <arg name="enable_platform_bridge" default="false" />
+
+  <arg name="common_platform_config" default="$(find ruikang_recon_baseline)/config/common/platform.yaml" />
+  <arg name="profile_platform_config" default="" />
+  <arg name="common_synthetic_config" default="$(find ruikang_recon_baseline)/config/common/synthetic.yaml" />
+  <arg name="profile_synthetic_config" default="" />
+  <arg name="common_vision_config" default="$(find ruikang_recon_baseline)/config/common/vision.yaml" />
+  <arg name="profile_vision_config" default="" />
+  <arg name="common_mission_config" default="$(find ruikang_recon_baseline)/config/common/mission.yaml" />
+  <arg name="profile_mission_config" default="" />
+  <arg name="common_recorder_config" default="$(find ruikang_recon_baseline)/config/common/recorder.yaml" />
+  <arg name="profile_recorder_config" default="" />
+  <arg name="common_safety_config" default="$(find ruikang_recon_baseline)/config/common/safety.yaml" />
+  <arg name="profile_safety_config" default="" />
+  <arg name="common_system_manager_config" default="$(find ruikang_recon_baseline)/config/common/system_manager.yaml" />
+  <arg name="profile_system_manager_config" default="" />
+  <arg name="field_asset_id" default="" />
+  <arg name="field_asset_path" default="" />
+  <arg name="field_asset_package_root" default="" />
+  <arg name="require_verified_field_asset" default="false" />
+  <arg name="required_field_asset_verification_scope" default="contract" />
+
+  <arg name="output_root" default="" />
+  <arg name="camera_topic" default="" />
+  <arg name="detections_topic" default="" />
+  <arg name="odom_topic" default="" />
+  <arg name="amcl_pose_topic" default="" />
+  <arg name="move_base_action_name" default="" />
+  <arg name="use_sim_time" default="false" />
+  <arg name="model_manifest_path" default="" />
+  <arg name="vendor_runtime_contract_path" default="" />
+  <arg name="upstream_feedback_topic" default="" />
+  <arg name="upstream_odom_topic" default="" />
+  <arg name="upstream_control_mode_topic" default="" />
+  <arg name="upstream_estop_topic" default="" />
+  <arg name="upstream_navigation_status_topic" default="" />
+  <arg name="upstream_command_topic" default="" />
+
+  <param name="/use_sim_time" value="$(arg use_sim_time)" />
+
+  <group ns="$(arg namespace)">
+    <group if="$(arg enable_synthetic)">
+      <node pkg="ruikang_recon_baseline" type="synthetic_scene_publisher.py" name="synthetic_scene_publisher" output="screen">
+        <rosparam command="load" file="$(arg common_synthetic_config)" />
+        <rosparam if="$(eval arg('profile_synthetic_config') != '')" command="load" file="$(arg profile_synthetic_config)" />
+        <param if="$(eval arg('camera_topic') != '')" name="camera_topic" value="$(arg camera_topic)" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_vision)">
+      <node pkg="ruikang_recon_baseline" type="vision_counter_node.py" name="vision_counter_node" output="screen">
+        <rosparam command="load" file="$(arg common_platform_config)" />
+        <rosparam if="$(eval arg('profile_platform_config') != '')" command="load" file="$(arg profile_platform_config)" />
+        <rosparam command="load" file="$(arg common_vision_config)" />
+        <rosparam if="$(eval arg('profile_vision_config') != '')" command="load" file="$(arg profile_vision_config)" />
+        <param if="$(eval arg('output_root') != '')" name="output_root" value="$(arg output_root)" />
+        <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
+        <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />
+        <param if="$(eval arg('camera_topic') != '')" name="camera_topic" value="$(arg camera_topic)" />
+        <param if="$(eval arg('detections_topic') != '')" name="detections_topic" value="$(arg detections_topic)" />
+        <param if="$(eval arg('field_asset_id') != '')" name="field_asset_id" value="$(arg field_asset_id)" />
+        <param if="$(eval arg('field_asset_path') != '')" name="field_asset_path" value="$(arg field_asset_path)" />
+        <param if="$(eval arg('field_asset_package_root') != '')" name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+        <param if="$(eval arg('model_manifest_path') != '')" name="model_manifest_path" value="$(arg model_manifest_path)" />
+        <param if="$(eval arg('vendor_runtime_contract_path') != '')" name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+        <param name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
+        <param name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_mission)">
+      <node pkg="ruikang_recon_baseline" type="mission_manager_node.py" name="mission_manager_node" output="screen">
+        <rosparam command="load" file="$(arg common_platform_config)" />
+        <rosparam if="$(eval arg('profile_platform_config') != '')" command="load" file="$(arg profile_platform_config)" />
+        <rosparam command="load" file="$(arg common_mission_config)" />
+        <rosparam if="$(eval arg('profile_mission_config') != '')" command="load" file="$(arg profile_mission_config)" />
+        <param if="$(eval arg('output_root') != '')" name="output_root" value="$(arg output_root)" />
+        <param if="$(eval arg('detections_topic') != '')" name="detections_topic" value="$(arg detections_topic)" />
+        <param if="$(eval arg('odom_topic') != '')" name="odom_topic" value="$(arg odom_topic)" />
+        <param if="$(eval arg('amcl_pose_topic') != '')" name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+        <param if="$(eval arg('move_base_action_name') != '')" name="move_base_action_name" value="$(arg move_base_action_name)" />
+        <param if="$(eval arg('field_asset_id') != '')" name="field_asset_id" value="$(arg field_asset_id)" />
+        <param if="$(eval arg('field_asset_path') != '')" name="field_asset_path" value="$(arg field_asset_path)" />
+        <param if="$(eval arg('field_asset_package_root') != '')" name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+        <param if="$(eval arg('vendor_runtime_contract_path') != '')" name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+        <param name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
+        <param name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+        <param if="$(arg enable_system_manager)" name="auto_start" value="false" />
+        <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
+        <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_recorder)">
+      <node pkg="ruikang_recon_baseline" type="mission_recorder_node.py" name="mission_recorder_node" output="screen">
+        <rosparam command="load" file="$(arg common_recorder_config)" />
+        <rosparam if="$(eval arg('profile_recorder_config') != '')" command="load" file="$(arg profile_recorder_config)" />
+        <param if="$(eval arg('output_root') != '')" name="output_root" value="$(arg output_root)" />
+        <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
+        <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_platform_bridge)">
+      <node pkg="ruikang_recon_baseline" type="platform_bridge_node.py" name="platform_bridge_node" output="screen">
+        <rosparam command="load" file="$(arg common_platform_config)" />
+        <rosparam if="$(eval arg('profile_platform_config') != '')" command="load" file="$(arg profile_platform_config)" />
+        <param if="$(eval arg('vendor_runtime_contract_path') != '')" name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+        <param if="$(eval arg('upstream_feedback_topic') != '')" name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
+        <param if="$(eval arg('upstream_odom_topic') != '')" name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />
+        <param if="$(eval arg('upstream_control_mode_topic') != '')" name="upstream_control_mode_topic" value="$(arg upstream_control_mode_topic)" />
+        <param if="$(eval arg('upstream_estop_topic') != '')" name="upstream_estop_topic" value="$(arg upstream_estop_topic)" />
+        <param if="$(eval arg('upstream_navigation_status_topic') != '')" name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />
+        <param if="$(eval arg('upstream_command_topic') != '')" name="upstream_command_topic" value="$(arg upstream_command_topic)" />
+        <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
+        <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_safety)">
+      <node pkg="ruikang_recon_baseline" type="cmd_safety_mux_node.py" name="cmd_safety_mux_node" output="screen">
+        <rosparam command="load" file="$(arg common_platform_config)" />
+        <rosparam if="$(eval arg('profile_platform_config') != '')" command="load" file="$(arg profile_platform_config)" />
+        <rosparam command="load" file="$(arg common_safety_config)" />
+        <rosparam if="$(eval arg('profile_safety_config') != '')" command="load" file="$(arg profile_safety_config)" />
+        <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
+        <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />
+      </node>
+    </group>
+
+    <group if="$(arg enable_system_manager)">
+      <node pkg="ruikang_recon_baseline" type="system_manager_node.py" name="system_manager_node" output="screen">
+        <rosparam command="load" file="$(arg common_system_manager_config)" />
+        <rosparam if="$(eval arg('profile_system_manager_config') != '')" command="load" file="$(arg profile_system_manager_config)" />
+        <param name="enable_vision_component" value="$(arg enable_vision)" />
+        <param name="enable_mission_component" value="$(arg enable_mission)" />
+        <param name="enable_recorder_component" value="$(arg enable_recorder)" />
+        <param name="enable_safety_component" value="$(arg enable_safety)" />
+        <param name="enable_platform_bridge_component" value="$(arg enable_platform_bridge)" />
+      </node>
+    </group>
+  </group>
+</launch>

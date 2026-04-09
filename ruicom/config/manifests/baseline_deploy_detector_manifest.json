@@ -1,0 +1,11 @@
+{
+  "input_size": 640,
+  "class_names": ["friendly", "enemy", "hostage"],
+  "parser_type": "color_blob_contract",
+  "confidence_threshold": 0.35,
+  "score_threshold": 0.25,
+  "nms_threshold": 0.45,
+  "detector_type": "color_blob",
+  "deployment_grade": "contract_verified",
+  "model_id": "baseline_color_blob_contract_v1"
+}

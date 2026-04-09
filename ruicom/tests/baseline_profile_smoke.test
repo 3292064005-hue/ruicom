@@ -1,0 +1,9 @@
+<launch>
+  <include file="$(find ruikang_recon_baseline)/launch/baseline.launch">
+    <arg name="enable_vision" value="false" />
+    <arg name="enable_mission" value="false" />
+    <arg name="enable_recorder" value="true" />
+    <arg name="enable_safety" value="true" />
+  </include>
+  <test test-name="baseline_profile_smoke" pkg="ruikang_recon_baseline" type="baseline_smoke.py" time-limit="20.0" />
+</launch>

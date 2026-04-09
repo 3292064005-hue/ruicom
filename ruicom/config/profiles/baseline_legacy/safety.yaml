@@ -1,0 +1,4 @@
+profile_role: "legacy"
+lifecycle_managed: false
+require_fresh_estop: true
+command_timeout_sec: 0.4

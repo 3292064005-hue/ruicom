@@ -1,0 +1,49 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="output_root" default="/tmp/ruikang_recon_dynamic_schema_mismatch" />
+
+  <group ns="$(arg namespace)">
+    <node pkg="ruikang_recon_baseline" type="fake_move_base_action_server.py" name="fake_move_base_action_server" output="screen">
+      <param name="action_name" value="move_base" />
+      <param name="pose_topic" value="amcl_pose" />
+      <param name="goal_completion_delay_sec" value="0.2" />
+      <param name="pose_publish_delay_sec" value="0.05" />
+      <param name="publish_initial_pose" value="true" />
+      <param name="initial_pose_publish_hz" value="10.0" />
+      <param name="stop_initial_pose_after_first_goal" value="true" />
+    </node>
+
+    <node pkg="ruikang_recon_baseline" type="fake_detection_array_publisher.py" name="fake_detection_array_publisher" output="screen">
+      <param name="detections_topic" value="recon/detections" />
+      <param name="detector_type" value="dynamic_schema_mismatch_fixture" />
+      <rosparam param="class_names">[friendly, enemy, hostage, neutral]</rosparam>
+      <rosparam param="count_by_class">{friendly: 2, enemy: 1, hostage: 1, neutral: 3}</rosparam>
+      <rosparam param="embedded_class_names">[friendly, enemy, hostage]</rosparam>
+    </node>
+  </group>
+
+  <include file="$(find ruikang_recon_baseline)/launch/core.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="enable_synthetic" value="false" />
+    <arg name="enable_vision" value="false" />
+    <arg name="enable_mission" value="true" />
+    <arg name="enable_recorder" value="true" />
+    <arg name="enable_safety" value="false" />
+    <arg name="profile_mission_config" value="$(find ruikang_recon_baseline)/config/profiles/dynamic_integration/mission.yaml" />
+    <arg name="profile_recorder_config" value="$(find ruikang_recon_baseline)/config/profiles/dynamic_integration/recorder.yaml" />
+    <arg name="profile_safety_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline/safety.yaml" />
+    <arg name="output_root" value="$(arg output_root)" />
+  </include>
+
+  <test test-name="dynamic_schema_mismatch_smoke" pkg="ruikang_recon_baseline" type="dynamic_schema_mismatch_smoke.py" time-limit="35.0">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="output_root" value="$(arg output_root)" />
+    <param name="output_root_use_namespace" value="true" />
+    <param name="mission_state_typed_topic" value="recon/mission_state_typed" />
+    <param name="zone_capture_dynamic_topic" value="recon/zone_capture_result_dynamic" />
+    <param name="health_typed_topic" value="recon/health_typed" />
+    <param name="expected_stream" value="detections" />
+    <rosparam param="expected_class_names">[friendly, enemy, hostage, neutral]</rosparam>
+    <rosparam param="expected_received_class_names">[friendly, enemy, hostage]</rosparam>
+  </test>
+</launch>

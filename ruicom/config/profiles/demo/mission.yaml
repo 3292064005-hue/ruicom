@@ -1,0 +1,17 @@
+navigation_adapter_type: simple_topic
+pose_source_type: odometry
+comparison_frame: map
+simulate_arrival_without_pose: true
+synthetic_arrival_delay_sec: 1.0
+embed_zone_results_in_state: false
+profile_role: demo
+require_route_frame_regions: true
+field_asset_id: demo_quad_zones
+required_field_asset_verification_scope: contract
+navigation_planner_backend: external_goal_dispatch
+navigation_controller_backend: external_controller_stack
+navigation_recovery_backend: executor_policy
+navigation_localization_backend: odometry_topic
+navigation_goal_transport: topic
+navigation_status_transport: internal_pose_evaluator
+navigation_cancel_transport: none

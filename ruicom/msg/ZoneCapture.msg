@@ -1,0 +1,14 @@
+std_msgs/Header header
+string zone_name
+string route_id
+string status
+int32 friendly
+int32 enemy
+int32 hostage
+float64 capture_started_at
+float64 capture_finished_at
+uint32 frame_count
+string frame_region
+string failure_reason
+string schema_version
+string class_schema_hash

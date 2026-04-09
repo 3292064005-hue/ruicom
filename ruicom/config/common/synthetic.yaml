@@ -1,0 +1,10 @@
+camera_topic: "camera/color/image_raw"
+width: 640
+height: 480
+fps: 5.0
+named_regions: []
+classes: ["friendly", "enemy", "hostage"]
+class_palette:
+  friendly: [0, 0, 255]
+  enemy: [255, 0, 0]
+  hostage: [20, 20, 20]

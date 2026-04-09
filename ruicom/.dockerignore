@@ -1,0 +1,11 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.swp
+*.tmp
+build
+devel
+logs
+*.bag
+*.log

@@ -1,0 +1,6 @@
+{
+  "adapter_type": "file_drop",
+  "endpoint_path": "~/.ros/ruikang_recon/judge_dropbox/official_report.json",
+  "receipt_path": "",
+  "timeout_sec": 5.0
+}

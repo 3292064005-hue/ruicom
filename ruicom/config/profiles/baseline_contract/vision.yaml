@@ -1,0 +1,9 @@
+frame_region_adapter_type: none
+strict_backend: true
+save_artifacts: false
+save_event_log: false
+profile_role: contract
+detector_schema_policy: subset_allowed
+field_asset_id: mowen_raicom_default
+
+required_field_asset_verification_scope: contract

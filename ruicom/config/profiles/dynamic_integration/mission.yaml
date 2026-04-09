@@ -1,0 +1,37 @@
+navigation_adapter_type: move_base_action
+move_base_action_name: move_base
+wait_for_action_server_sec: 5.0
+pose_source_type: amcl_pose
+comparison_frame: map
+classes:
+- friendly
+- enemy
+- hostage
+- neutral
+embed_zone_results_in_state: false
+route:
+- name: zone_alpha
+  x: 1.0
+  y: 0.0
+  yaw_deg: 0.0
+  dwell_sec: 2.0
+  timeout_sec: 20.0
+  frame_region: ''
+- name: zone_beta
+  x: 2.0
+  y: 0.0
+  yaw_deg: 0.0
+  dwell_sec: 2.0
+  timeout_sec: 20.0
+  frame_region: ''
+profile_role: integration
+require_route_frame_regions: false
+expected_frame_regions: []
+required_field_asset_verification_scope: contract
+navigation_planner_backend: move_base_global_planner
+navigation_controller_backend: move_base_local_controller
+navigation_recovery_backend: executor_policy
+navigation_localization_backend: amcl_pose_topic
+navigation_goal_transport: actionlib
+navigation_status_transport: actionlib
+navigation_cancel_transport: actionlib

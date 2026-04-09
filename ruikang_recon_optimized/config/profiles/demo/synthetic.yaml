@@ -1,5 +1,0 @@
-named_regions:
-  - {name: "zone_a", x0: 20,  y0: 40, x1: 300, y1: 220, friendly: 2, enemy: 1, hostage: 1}
-  - {name: "zone_b", x0: 340, y0: 40, x1: 620, y1: 220, friendly: 1, enemy: 3, hostage: 1}
-  - {name: "zone_c", x0: 20,  y0: 250, x1: 300, y1: 450, friendly: 0, enemy: 2, hostage: 2}
-  - {name: "zone_d", x0: 340, y0: 250, x1: 620, y1: 450, friendly: 3, enemy: 0, hostage: 1}

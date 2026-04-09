@@ -1,0 +1,16 @@
+platform_adapter_type: "generic_ros_nav"
+enable_platform_bridge: false
+upstream_feedback_topic: ''
+upstream_odom_topic: ''
+upstream_control_mode_topic: ''
+upstream_estop_topic: ''
+upstream_navigation_status_topic: ''
+control_mode_topic: recon/control_mode
+estop_topic: recon/estop
+navigation_status_topic: recon/navigation_status
+platform_bridge_state_topic: recon/platform/bridge_state
+default_control_mode: COMMANDER
+publish_rate_hz: 20.0
+upstream_command_topic: recon/platform/vendor/cmd_vel
+command_input_topic: cmd_vel_raw
+safety_output_topic: cmd_vel

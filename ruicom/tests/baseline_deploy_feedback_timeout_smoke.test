@@ -1,0 +1,29 @@
+<launch>
+  <arg name="namespace" default="" />
+
+  <group ns="$(arg namespace)">
+    <node pkg="ruikang_recon_baseline" type="fake_twist_publisher.py" name="fake_twist_publisher" output="screen">
+      <param name="topic" value="recon/platform/vendor/cmd_vel" />
+      <param name="linear_x" value="0.2" />
+      <param name="publish_rate_hz" value="20.0" />
+    </node>
+  </group>
+
+  <include file="$(find ruikang_recon_baseline)/launch/core.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="enable_vision" value="false" />
+    <arg name="enable_mission" value="false" />
+    <arg name="enable_recorder" value="false" />
+    <arg name="enable_safety" value="true" />
+    <arg name="enable_system_manager" value="false" />
+    <arg name="profile_platform_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline/platform.yaml" />
+    <arg name="profile_safety_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline/safety.yaml" />
+  </include>
+
+  <test test-name="baseline_deploy_feedback_timeout_smoke" pkg="ruikang_recon_baseline" type="baseline_deploy_feedback_timeout_smoke.py" time-limit="30.0">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="health_typed_topic" value="recon/health_typed" />
+    <param name="safety_state_topic" value="recon/safety_state" />
+    <param name="output_topic" value="cmd_vel" />
+  </test>
+</launch>

@@ -1,0 +1,130 @@
+camera_topic: ""
+overlay_topic: recon/overlay/image_raw
+detections_topic: recon/detections
+detections_json_topic: recon/detections_json
+frame_region_counts_topic: recon/zone_counts
+frame_region_counts_typed_topic: recon/zone_counts_typed
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: ''
+output_root: ~/.ros/ruikang_recon
+output_root_use_namespace: true
+detector_type: color_blob
+onnx_model_path: ''
+model_manifest_path: ''
+parser_type: yolo_v5_like
+input_size: 640
+confidence_threshold: 0.35
+score_threshold: 0.25
+nms_threshold: 0.45
+min_area_px: 180
+max_area_px: 80000
+save_interval_sec: 2.0
+event_log_interval_sec: 0.0
+stable_window: 5
+publish_debug_image: true
+publish_json_debug_topics: true
+save_artifacts: true
+save_event_log: true
+strict_backend: true
+allowed_deploy_detector_types: [onnx, color_blob]
+require_detector_manifest_in_deploy: false
+camera_ready_timeout_sec: 1.5
+detector_schema_policy: subset_allowed
+profile_role: integration
+expected_region_names: []
+frame_region_adapter_type: none
+time_source_mode: ros
+classes:
+- friendly
+- enemy
+- hostage
+writer_queue_size: 512
+writer_rotate_max_bytes: 5242880
+writer_rotate_keep: 3
+named_regions: []
+color_blob:
+  class_map:
+    friendly:
+      ranges:
+      - lower:
+        - 0
+        - 80
+        - 60
+        upper:
+        - 10
+        - 255
+        - 255
+      - lower:
+        - 170
+        - 80
+        - 60
+        upper:
+        - 179
+        - 255
+        - 255
+    enemy:
+      ranges:
+      - lower:
+        - 95
+        - 80
+        - 50
+        upper:
+        - 135
+        - 255
+        - 255
+    hostage:
+      ranges:
+      - lower:
+        - 0
+        - 0
+        - 0
+        upper:
+        - 179
+        - 255
+        - 60
+  red_1:
+    lower:
+    - 0
+    - 80
+    - 60
+    upper:
+    - 10
+    - 255
+    - 255
+  red_2:
+    lower:
+    - 170
+    - 80
+    - 60
+    upper:
+    - 179
+    - 255
+    - 255
+  blue:
+    lower:
+    - 95
+    - 80
+    - 50
+    upper:
+    - 135
+    - 255
+    - 255
+  black:
+    lower:
+    - 0
+    - 0
+    - 0
+    upper:
+    - 179
+    - 255
+    - 60
+  morph_kernel: 5
+  min_aspect_ratio: 0.2
+  max_aspect_ratio: 1.8
+  min_fill_ratio: 0.18
+platform_adapter_type: generic_ros_nav
+field_asset_id: ''
+field_asset_path: ''
+field_asset_package_root: ''
+required_field_asset_verification_scope: contract

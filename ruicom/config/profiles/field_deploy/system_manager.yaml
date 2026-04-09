@@ -1,0 +1,6 @@
+readiness_requirements:
+  vision_counter_node: [camera_topic_bound, camera_frame_fresh, detector_contract_satisfied, detector_manifest_grade_satisfied, field_asset_ready, vendor_runtime_contract_satisfied, vendor_bundle_preflight_satisfied]
+  mission_manager_node: [route_bound, navigation_contract_satisfied, field_asset_ready, navigation_runtime_probe_satisfied, vendor_runtime_contract_satisfied, vendor_bundle_preflight_satisfied]
+  mission_recorder_node: [writer_ready]
+  cmd_safety_mux_node: [command_path_bound, output_feedback_required_satisfied]
+  platform_bridge_node: [command_path_bound, command_flow_contract_satisfied, feedback_contract_satisfied, platform_runtime_probe_satisfied, vendor_runtime_contract_satisfied, vendor_bundle_preflight_satisfied]

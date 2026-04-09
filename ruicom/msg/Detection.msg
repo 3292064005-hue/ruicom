@@ -1,0 +1,12 @@
+string class_name
+float32 score
+int32 x1
+int32 y1
+int32 x2
+int32 y2
+string frame_region
+string observed_position_type
+string observed_position_label
+float32 observed_position_x_m
+float32 observed_position_y_m
+string evidence_source

@@ -1,0 +1,25 @@
+field_asset_id: "demo_quad_zones"
+description: "Synthetic demo field asset with four fixed zones."
+map_id: "demo_quad_zones_map"
+camera_calibration_id: "demo_quad_zones_camera"
+region_calibration:
+  calibration_id: "demo_quad_zones_regions_v1"
+  policy: scale_to_frame
+  reference_image_width: 640
+  reference_image_height: 480
+  x_scale: 1.0
+  y_scale: 1.0
+  x_offset_px: 0.0
+  y_offset_px: 0.0
+comparison_frame: "map"
+expected_region_names: ["zone_a", "zone_b", "zone_c", "zone_d"]
+route:
+  - {name: "zone_a", x: 0.5, y: 0.0, yaw_deg: 0.0, dwell_sec: 2.5, timeout_sec: 5.0, frame_region: "zone_a"}
+  - {name: "zone_b", x: 1.0, y: 0.0, yaw_deg: 0.0, dwell_sec: 2.5, timeout_sec: 5.0, frame_region: "zone_b"}
+  - {name: "zone_c", x: 1.0, y: -0.5, yaw_deg: -90.0, dwell_sec: 2.5, timeout_sec: 5.0, frame_region: "zone_c"}
+  - {name: "zone_d", x: 0.5, y: -0.5, yaw_deg: 180.0, dwell_sec: 2.5, timeout_sec: 5.0, frame_region: "zone_d"}
+named_regions:
+  - {name: "zone_a", x0: 20,  y0: 40, x1: 300, y1: 220}
+  - {name: "zone_b", x0: 340, y0: 40, x1: 620, y1: 220}
+  - {name: "zone_c", x0: 20,  y0: 250, x1: 300, y1: 450}
+  - {name: "zone_d", x0: 340, y0: 250, x1: 620, y1: 450}

@@ -1,0 +1,37 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="enable_vision" default="true" />
+  <arg name="enable_mission" default="true" />
+  <arg name="enable_recorder" default="true" />
+  <arg name="enable_safety" default="false" />
+  <arg name="output_root" default="" />
+  <arg name="camera_topic" default="" />
+  <arg name="detections_topic" default="" />
+  <arg name="odom_topic" default="" />
+  <arg name="amcl_pose_topic" default="" />
+  <arg name="move_base_action_name" default="" />
+  <arg name="use_sim_time" default="false" />
+  <arg name="enable_platform_bridge" default="true" />
+
+  <include file="$(find ruikang_recon_baseline)/launch/core.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="enable_synthetic" value="false" />
+    <arg name="enable_vision" value="$(arg enable_vision)" />
+    <arg name="enable_mission" value="$(arg enable_mission)" />
+    <arg name="enable_recorder" value="$(arg enable_recorder)" />
+    <arg name="enable_safety" value="$(arg enable_safety)" />
+    <arg name="enable_platform_bridge" value="$(arg enable_platform_bridge)" />
+    <arg name="profile_platform_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline_legacy/platform.yaml" />
+    <arg name="profile_vision_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline_legacy/vision.yaml" />
+    <arg name="profile_mission_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline_legacy/mission.yaml" />
+    <arg name="profile_recorder_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline_legacy/recorder.yaml" />
+    <arg name="profile_safety_config" value="$(find ruikang_recon_baseline)/config/profiles/baseline_legacy/safety.yaml" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="detections_topic" value="$(arg detections_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+  </include>
+</launch>

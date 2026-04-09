@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find ruikang_recon_baseline)/tests/dynamic_schema_integration_smoke.test">
+    <arg name="namespace" value="robot1" />
+    <arg name="output_root" value="/tmp/ruikang_recon_dynamic_schema_integration_ns" />
+  </include>
+</launch>

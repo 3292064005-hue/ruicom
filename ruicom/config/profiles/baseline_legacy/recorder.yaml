@@ -1,0 +1,6 @@
+profile_role: "legacy"
+time_source_mode: "ros"
+lifecycle_managed: false
+recorder_authoritative_input: "auto"
+snapshot_flush_hz: 1.0
+snapshot_flush_on_state_change_only: false

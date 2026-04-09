@@ -1,0 +1,16 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="output_root" default="/tmp/ruikang_recon_baseline_contract_test" />
+  <include file="$(find ruikang_recon_baseline)/launch/baseline_contract.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="output_root" value="$(arg output_root)" />
+  </include>
+  <test test-name="baseline_contract_smoke" pkg="ruikang_recon_baseline" type="baseline_contract_smoke.py" time-limit="25.0">
+    <param name="namespace" value="$(arg namespace)" />
+    <param name="output_root" value="$(arg output_root)" />
+    <param name="mission_state_typed_topic" value="recon/mission_state_typed" />
+    <param name="zone_capture_dynamic_topic" value="recon/zone_capture_result_dynamic" />
+    <param name="summary_snapshot_topic" value="recon/summary_snapshot" />
+    <param name="summary_snapshot_dynamic_topic" value="recon/summary_snapshot_v2" />
+  </test>
+</launch>

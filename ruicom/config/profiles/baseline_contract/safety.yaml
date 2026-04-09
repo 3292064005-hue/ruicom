@@ -1,0 +1,4 @@
+profile_role: "contract"
+lifecycle_managed: false
+require_fresh_estop: false
+command_timeout_sec: 0.4
