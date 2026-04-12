@@ -22,6 +22,7 @@ readiness_requirements:
   platform_bridge_node:
   - command_path_bound
   - command_flow_contract_satisfied
+  - runtime_interface_contract_satisfied
   - feedback_contract_satisfied
   - platform_runtime_probe_satisfied
   - vendor_runtime_contract_satisfied

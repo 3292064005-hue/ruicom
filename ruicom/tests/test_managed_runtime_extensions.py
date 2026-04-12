@@ -117,6 +117,15 @@ class MissionDslTest(unittest.TestCase):
         self.assertEqual(tasks[2]['task_type'], 'hazard_avoid')
         self.assertEqual(tasks[3]['metadata']['attack_mode'], 'command_confirmed')
 
+    def test_task_dsl_rejects_unsupported_schema_version(self):
+        route_payload = json.loads(json.dumps(__import__('yaml').safe_load((ROOT / 'config/field_assets/mowen_raicom_reference_field_verified.yaml').read_text(encoding='utf-8'))['route']))
+        route = load_waypoints(route_payload, dwell_default_sec=4.0)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'tasks.yaml'
+            path.write_text('dsl_version: 99\nnodes:\n- id: x\n  type: finish\n  waypoint_ref: zone_a\n', encoding='utf-8')
+            with self.assertRaises(Exception):
+                load_task_graph_dsl(path=str(path), route=route, file_format='yaml')
+
 
 class RuntimeGraphExpectationTest(unittest.TestCase):
     def test_build_runtime_graph_expectations(self):

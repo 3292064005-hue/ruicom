@@ -3,6 +3,8 @@ health_typed_topic: recon/health_typed
 mission_state_typed_topic: recon/mission_state_typed
 control_command_topic: recon/system_manager/command
 manager_state_topic: recon/system_manager/state
+publish_diagnostics: true
+diagnostics_topic: /diagnostics
 required_nodes:
 - vision_counter_node
 - mission_manager_node
@@ -33,6 +35,7 @@ readiness_requirements:
   platform_bridge_node:
   - command_path_bound
   - command_flow_contract_satisfied
+  - runtime_interface_contract_satisfied
   - feedback_contract_satisfied
   - platform_runtime_probe_satisfied
   - vendor_runtime_contract_satisfied

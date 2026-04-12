@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import shutil
 import subprocess
 import sys
@@ -41,6 +43,16 @@ class ReleaseValidatorScriptsTest(unittest.TestCase):
         result = self._run('tools/validate_launch_contracts.py')
         self.assertEqual(result.returncode, 0, msg=result.stdout)
         self.assertIn('validated', result.stdout)
+
+    def test_static_python_contract_validator_passes_on_repo(self):
+        result = self._run('tools/validate_static_python_contracts.py')
+        self.assertEqual(result.returncode, 0, msg=result.stdout)
+        self.assertIn('validated static python contracts', result.stdout)
+
+    def test_third_party_governance_validator_passes_on_repo(self):
+        result = self._run('tools/validate_third_party_governance.py')
+        self.assertEqual(result.returncode, 0, msg=result.stdout)
+        self.assertIn('validated third-party governance', result.stdout)
 
 
 if __name__ == '__main__':

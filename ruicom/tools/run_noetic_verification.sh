@@ -31,6 +31,8 @@ fi
 python3 "${PACKAGE_ROOT}/tools/validate_repository_hygiene.py"
 python3 "${PACKAGE_ROOT}/tools/validate_launch_contracts.py"
 python3 "${PACKAGE_ROOT}/tools/validate_profile_contracts.py"
+python3 "${PACKAGE_ROOT}/tools/validate_static_python_contracts.py"
+python3 "${PACKAGE_ROOT}/tools/validate_third_party_governance.py"
 python3 "${PACKAGE_ROOT}/tools/validate_field_asset_release.py"
 
 mkdir -p "${SRC_DIR}"

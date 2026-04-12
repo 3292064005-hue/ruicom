@@ -14,6 +14,7 @@ from ruikang_recon_baseline.platform_adapters import (
 from ruikang_recon_baseline.platform_bridge_core import PlatformBridgeSnapshot, evaluate_platform_bridge
 from ruikang_recon_baseline.platform_contracts import (
     validate_platform_contract_bindings,
+    validate_platform_runtime_interface_contract,
     validate_platform_runtime_strategy,
 )
 from ruikang_recon_baseline.common import detector_manifest_satisfies_scope, load_manifest
@@ -197,6 +198,37 @@ class PlatformBindingValidationTest(unittest.TestCase):
         )
         self.assertIn('recon/platform/base_feedback', summary['bound_topics'])
         self.assertIn('move_base', summary['bound_actions'])
+
+    def test_runtime_interface_contract_requires_evidence_and_control_topics(self):
+        summary = validate_platform_runtime_interface_contract(
+            {
+                'upstream_command_topic': 'recon/platform/vendor/cmd_vel',
+                'command_input_topic': 'cmd_vel_raw',
+                'safety_output_topic': 'cmd_vel',
+                'output_feedback_topic': 'recon/platform/base_feedback',
+                'control_mode_topic': 'recon/control_mode',
+                'estop_topic': 'recon/estop',
+                'runtime_evidence_topic': 'recon/runtime/evidence',
+            },
+            owner='unit.platform_runtime_interface',
+        )
+        self.assertTrue(summary['satisfied'])
+        self.assertEqual(summary['bound_topics']['command_input_topic'], 'cmd_vel_raw')
+
+    def test_runtime_interface_contract_rejects_missing_evidence_topic(self):
+        with self.assertRaises(ConfigurationError):
+            validate_platform_runtime_interface_contract(
+                {
+                    'upstream_command_topic': 'recon/platform/vendor/cmd_vel',
+                    'command_input_topic': 'cmd_vel_raw',
+                    'safety_output_topic': 'cmd_vel',
+                    'output_feedback_topic': 'recon/platform/base_feedback',
+                    'control_mode_topic': 'recon/control_mode',
+                    'estop_topic': 'recon/estop',
+                    'runtime_evidence_topic': '',
+                },
+                owner='unit.platform_runtime_interface',
+            )
 
     def test_runtime_strategy_rejects_invalid_motion_semantics_pair(self):
         capability = PlatformAdapterRegistry().resolve('mowen_mo_sergeant')

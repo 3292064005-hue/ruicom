@@ -4,6 +4,7 @@ project(ruikang_recon_baseline)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  diagnostic_msgs
   geometry_msgs
   nav_msgs
   sensor_msgs
@@ -36,7 +37,7 @@ generate_messages(
 catkin_python_setup()
 
 catkin_package(
-  CATKIN_DEPENDS rospy std_msgs geometry_msgs nav_msgs sensor_msgs actionlib actionlib_msgs cv_bridge image_transport move_base_msgs tf2_ros std_srvs message_runtime
+  CATKIN_DEPENDS rospy std_msgs diagnostic_msgs geometry_msgs nav_msgs sensor_msgs actionlib actionlib_msgs cv_bridge image_transport move_base_msgs tf2_ros std_srvs message_runtime
 )
 
 catkin_install_python(PROGRAMS

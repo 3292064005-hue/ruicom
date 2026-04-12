@@ -41,6 +41,7 @@ from .msg import DetectionArray, HealthState, MissionState, ZoneCapture, ZoneCap
 from .navigation_adapters import build_navigation_registry
 from .pose_sources import TfLookupPoseSource
 from .recovery_policies import RetryThenFailPolicy
+from .runtime_probes import evaluate_navigation_runtime_probe
 from .lifecycle_protocol import decode_lifecycle_control, encode_lifecycle_control
 from .lifecycle_runtime import ManagedRuntimeState
 from .time_core import NodeClock

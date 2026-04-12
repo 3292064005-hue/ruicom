@@ -18,5 +18,9 @@ jobs:
           python -m pip install pytest pyyaml
       - name: Validate profile contracts
         run: python tools/validate_profile_contracts.py
+      - name: Validate static Python contracts
+        run: python tools/validate_static_python_contracts.py
+      - name: Validate third-party governance
+        run: python tools/validate_third_party_governance.py
       - name: Run Python unit tests
         run: PYTHONPATH=src pytest -q tests/test_*.py

@@ -43,10 +43,15 @@ def _wait_for(condition, *, timeout_sec: float, sleep_sec: float = 0.2) -> bool:
 
 def main() -> int:
     args = _parse_args()
+    import rosgraph
     import rospy
     import rosnode
     import rostopic
 
+    try:
+        rosgraph.Master('/runtime_graph_validator').getPid()
+    except Exception as exc:
+        raise SystemExit('ROS master unavailable for runtime graph validation: {}'.format(exc))
     rospy.init_node('runtime_graph_validator', anonymous=True)
     expected = build_runtime_graph_expectations(
         enable_vision=False,

@@ -43,6 +43,8 @@ from .vendor_bundle_preflight import build_vendor_bundle_preflight_report, enfor
 from .io_core import AsyncJsonlWriter
 from .lifecycle_protocol import decode_lifecycle_control, encode_lifecycle_control
 from .lifecycle_runtime import ManagedRuntimeState
+from .manifest_utils import detector_manifest_satisfies_scope
+from .model_requirements import enforce_onnx_model_requirement
 from .time_core import NodeClock
 from .vision_core import FrameRegionAdapter, build_detector, draw_overlay
 from .msg import Detection as DetectionMsg
@@ -215,6 +217,7 @@ class VisionCounterNode:
             env_value = os.environ.get(str(config.get('onnx_model_path_env', '')).strip(), '').strip()
             if env_value:
                 config['onnx_model_path'] = env_value
+        enforce_onnx_model_requirement(config, owner='vision_counter_node')
         config['confidence_threshold'] = require_positive_float('confidence_threshold', config['confidence_threshold'], allow_zero=True)
         config['score_threshold'] = require_positive_float('score_threshold', config['score_threshold'], allow_zero=True)
         config['nms_threshold'] = require_positive_float('nms_threshold', config['nms_threshold'], allow_zero=True)
@@ -492,6 +495,7 @@ class VisionCounterNode:
         merged_details.setdefault('detector_manifest_grade_satisfied', bool(self.config.get('detector_manifest_grade_satisfied', True)))
         merged_details.setdefault('detector_manifest_model_id', str(self.config.get('detector_manifest_model_id', '')).strip())
         merged_details.setdefault('detector_manifest_deployment_grade', str(self.config.get('detector_manifest_deployment_grade', '')).strip())
+        merged_details.setdefault('onnx_model_requirement', dict(self.config.get('onnx_model_requirement', {})))
         merged_details.setdefault('field_asset_ready', bool(self.config.get('field_asset_contract_satisfied', False)))
         merged_details.setdefault('vendor_runtime_contract_satisfied', bool(self.config.get('vendor_runtime_contract_satisfied', True)))
         merged_details.setdefault('vendor_bundle_preflight', dict(self.config.get('vendor_bundle_preflight', {})))

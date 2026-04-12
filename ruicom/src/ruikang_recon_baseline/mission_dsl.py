@@ -17,6 +17,7 @@ from .mission_plan import LEGACY_TASK_DEFAULT, SUPPORTED_TASK_TYPES
 from .runtime_paths import expand_path, resolve_package_relative_path
 
 _VALID_FILE_FORMATS = ('yaml', 'json')
+_SUPPORTED_DSL_VERSIONS = (1,)
 
 
 def _resolve_path(path: str) -> Path:
@@ -84,6 +85,11 @@ def load_task_graph_dsl(*, path: str, route: Sequence[Waypoint], file_format: st
         raise ConfigurationError(f'mission task DSL format must be one of {", ".join(_VALID_FILE_FORMATS)}')
     resolved = _resolve_path(path)
     payload = _load_mapping(resolved, normalized_format)
+    dsl_version = int(payload.get('dsl_version', 1) or 1)
+    if dsl_version not in _SUPPORTED_DSL_VERSIONS:
+        raise ConfigurationError(
+            f'mission task DSL {resolved} uses unsupported dsl_version {dsl_version}; supported versions are {_SUPPORTED_DSL_VERSIONS}'
+        )
     nodes = list(payload.get('nodes', []) or [])
     if not nodes:
         raise ConfigurationError(f'mission task DSL {resolved} must define non-empty nodes')

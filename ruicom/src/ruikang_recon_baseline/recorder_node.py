@@ -158,6 +158,7 @@ class MissionRecorderNode:
             'class_schema_mismatch_policy': str(rospy.get_param('~class_schema_mismatch_policy', 'error')).strip().lower(),
             'classes': rospy.get_param('~classes', list(CLASS_NAMES)),
             'profile_role': str(rospy.get_param('~profile_role', 'integration')).strip().lower(),
+            'runtime_grade': str(rospy.get_param('~runtime_grade', 'integration')).strip().lower() or 'integration',
             'time_source_mode': str(rospy.get_param('~time_source_mode', 'ros')).strip().lower(),
             'lifecycle_managed': bool(rospy.get_param('~lifecycle_managed', False)),
             'control_command_topic': str(rospy.get_param('~control_command_topic', 'recon/system_manager/command')).strip() or 'recon/system_manager/command',

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from ruikang_recon_baseline.field_assets import apply_field_asset_to_vision_config  # noqa: E402
-from ruikang_recon_baseline.runtime_paths import resolve_package_relative_path  # noqa: E402
+from ruikang_recon_baseline.model_requirements import resolve_onnx_model_requirement  # noqa: E402
 
 
 def load_yaml(path: Path):
@@ -27,29 +27,12 @@ def load_yaml(path: Path):
 
 
 def collect_onnx_requirement(owner: str, payload: dict) -> dict | None:
-    detector_type = str(payload.get('detector_type', '')).strip().lower()
-    if detector_type != 'onnx':
+    requirement = resolve_onnx_model_requirement(payload)
+    if not requirement.get('required'):
         return None
-    direct = str(payload.get('onnx_model_path', '')).strip()
-    env_name = str(payload.get('onnx_model_path_env', '')).strip()
-    resolved_direct = ''
-    if direct:
-        resolved_direct = resolve_package_relative_path(direct) or str(Path(direct).expanduser().resolve())
-        return {
-            'owner': owner,
-            'source': 'path',
-            'binding': direct,
-            'resolved_path': resolved_direct,
-            'satisfied': Path(resolved_direct).exists(),
-        }
-    env_value = os.environ.get(env_name, '').strip() if env_name else ''
-    resolved_env = str(Path(env_value).expanduser().resolve()) if env_value else ''
     return {
+        **requirement,
         'owner': owner,
-        'source': 'env',
-        'binding': env_name,
-        'resolved_path': resolved_env,
-        'satisfied': bool(env_value) and Path(resolved_env).exists(),
     }
 
 

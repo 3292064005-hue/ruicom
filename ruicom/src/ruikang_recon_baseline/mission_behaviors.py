@@ -257,6 +257,19 @@ class MissionBehaviorRegistry:
             )
         }
 
+    def register(self, behavior: MissionStepBehavior, *, replace: bool = False) -> None:
+        """Register one behavior implementation against its execution type."""
+        execution_type = str(getattr(behavior, 'execution_type', '')).strip()
+        if not execution_type:
+            raise ConfigurationError('mission behavior execution_type must not be empty')
+        if execution_type in self._behaviors and not replace:
+            raise ConfigurationError('mission behavior {} is already registered'.format(execution_type))
+        self._behaviors[execution_type] = behavior
+
+    def supported_execution_types(self) -> tuple[str, ...]:
+        """Return supported behavior execution types for DSL contract checks."""
+        return tuple(sorted(self._behaviors))
+
     def resolve(self, execution_type: str) -> MissionStepBehavior:
         normalized = str(execution_type or '').strip()
         behavior = self._behaviors.get(normalized)

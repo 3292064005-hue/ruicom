@@ -6,6 +6,10 @@ from pathlib import Path
 import yaml
 
 from ruikang_recon_baseline.field_assets import apply_field_asset_to_vision_config
+from ruikang_recon_baseline.model_requirements import (
+    enforce_onnx_model_requirement,
+    resolve_onnx_model_requirement,
+)
 
 
 class ExternalRuntimeRequirementTest(unittest.TestCase):
@@ -34,6 +38,30 @@ class ExternalRuntimeRequirementTest(unittest.TestCase):
                     os.environ['RUIKANG_REFERENCE_ONNX_MODEL'] = old
                 else:
                     os.environ.pop('RUIKANG_REFERENCE_ONNX_MODEL', None)
+
+    def test_missing_env_bound_model_reports_actionable_status(self):
+        report = resolve_onnx_model_requirement(
+            {'detector_type': 'onnx', 'onnx_model_path_env': 'RUIKANG_REFERENCE_ONNX_MODEL'},
+            environ={},
+        )
+        self.assertFalse(report['satisfied'])
+        self.assertEqual(report['source'], 'env')
+        self.assertEqual(report['binding'], 'RUIKANG_REFERENCE_ONNX_MODEL')
+        self.assertEqual(report['status'], 'missing_model_path')
+
+    def test_enforced_model_requirement_resolves_and_records_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model = Path(tmpdir) / 'model.onnx'
+            model.write_bytes(b'not-validated-in-static-ci')
+            config = {
+                'detector_type': 'onnx',
+                'onnx_model_path': str(model),
+                'onnx_model_path_env': 'RUIKANG_REFERENCE_ONNX_MODEL',
+            }
+            report = enforce_onnx_model_requirement(config, owner='unit.vision')
+            self.assertTrue(report['satisfied'])
+            self.assertEqual(config['onnx_model_path'], str(model))
+            self.assertEqual(config['onnx_model_requirement']['status'], 'validated')
 
 
 if __name__ == '__main__':

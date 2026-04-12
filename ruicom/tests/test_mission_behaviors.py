@@ -1,6 +1,8 @@
 import unittest
 
 from ruikang_recon_baseline.common import Waypoint, ZoneCaptureResult
+from ruikang_recon_baseline.domain_models import ConfigurationError
+from ruikang_recon_baseline.mission_behaviors import CaptureFinalizeOutcome, MissionBehaviorRegistry, MissionStepBehavior, NavigationSuccessOutcome
 from ruikang_recon_baseline.mission_context import MissionContext
 from ruikang_recon_baseline.mission_core import AggregationPolicy, CaptureWindowAggregator
 from ruikang_recon_baseline.mission_executor import MissionExecutor, MissionRuntimeHooks
@@ -194,6 +196,32 @@ class MissionBehaviorTest(unittest.TestCase):
         self.assertEqual(resolution.outcome, 'failure')
         self.assertEqual(resolution.result.status, 'action_unconfirmed')
         self.assertEqual(resolution.result.mission_outcome, 'facility_action_failed')
+
+
+class MissionBehaviorRegistryExtensionTest(unittest.TestCase):
+    def test_registry_supports_explicit_behavior_registration(self):
+        class InspectBehavior(MissionStepBehavior):
+            execution_type = 'inspect_asset'
+
+            def on_navigation_succeeded(self, executor, step, now_sec):
+                _ = executor, step, now_sec
+                return NavigationSuccessOutcome(begin_dwell=True)
+
+            def finalize_capture(self, executor, step, base_result):
+                _ = executor
+                base_result.task_type = step.task_type
+                base_result.mission_outcome = 'asset_inspected'
+                return CaptureFinalizeOutcome(result=base_result, outcome='success')
+
+        registry = MissionBehaviorRegistry()
+        registry.register(InspectBehavior())
+        self.assertIn('inspect_asset', registry.supported_execution_types())
+        self.assertEqual(registry.resolve('inspect_asset').execution_type, 'inspect_asset')
+
+    def test_registry_rejects_duplicate_behavior_without_replace(self):
+        registry = MissionBehaviorRegistry()
+        with self.assertRaises(ConfigurationError):
+            registry.register(registry.resolve('recon_zone'))
 
 
 if __name__ == '__main__':

@@ -574,11 +574,28 @@ class RepositoryConsistencyTest(unittest.TestCase):
         for token in [
             'tools/validate_repository_hygiene.py',
             'tools/validate_launch_contracts.py',
+            'tools/validate_static_python_contracts.py',
+            'tools/validate_third_party_governance.py',
             'tests/baseline_integration_namespace_smoke.test',
             'tests/dynamic_schema_integration_namespace_smoke.test',
         ]:
             with self.subTest(token=token):
                 self.assertIn(token, content)
+
+    def test_system_manager_projects_readiness_to_ros_diagnostics(self):
+        content = (ROOT / 'src/ruikang_recon_baseline/system_manager_node.py').read_text(encoding='utf-8')
+        for token in ['DiagnosticArray', 'DiagnosticStatus', 'KeyValue', 'diagnostics_topic', '_publish_diagnostic_status']:
+            with self.subTest(token=token):
+                self.assertIn(token, content)
+        system_manager = yaml.safe_load((ROOT / 'config/common/system_manager.yaml').read_text(encoding='utf-8'))
+        self.assertTrue(system_manager.get('publish_diagnostics'))
+        self.assertEqual(system_manager.get('diagnostics_topic'), '/diagnostics')
+        self.assertIn('diagnostic_msgs', (ROOT / 'package.xml').read_text(encoding='utf-8'))
+
+    def test_runtime_graph_validator_fails_fast_without_ros_master(self):
+        content = (ROOT / 'tools/validate_runtime_graph.py').read_text(encoding='utf-8')
+        self.assertIn('rosgraph.Master', content)
+        self.assertIn('ROS master unavailable', content)
 
     def test_vendor_runtime_launch_exists_and_exposes_external_launch_args(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
@@ -619,7 +636,7 @@ class RepositoryConsistencyTest(unittest.TestCase):
         payload = yaml.safe_load((ROOT / 'config/common/system_manager.yaml').read_text(encoding='utf-8'))
         self.assertEqual(
             payload.get('readiness_requirements', {}).get('platform_bridge_node'),
-            ['command_path_bound', 'command_flow_contract_satisfied', 'feedback_contract_satisfied', 'platform_runtime_probe_satisfied', 'vendor_runtime_contract_satisfied', 'vendor_bundle_preflight_satisfied'],
+            ['command_path_bound', 'command_flow_contract_satisfied', 'runtime_interface_contract_satisfied', 'feedback_contract_satisfied', 'platform_runtime_probe_satisfied', 'vendor_runtime_contract_satisfied', 'vendor_bundle_preflight_satisfied'],
         )
 
 

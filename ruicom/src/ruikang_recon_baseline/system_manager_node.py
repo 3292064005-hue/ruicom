@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 import rospy
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from std_msgs.msg import String, Bool
 from std_srvs.srv import Trigger, TriggerResponse
 
@@ -39,6 +40,7 @@ class SystemManagerNode:
         self.state_pub = rospy.Publisher(self.config['manager_state_topic'], String, queue_size=10, latch=True)
         self.health_pub = rospy.Publisher(self.config['health_topic'], String, queue_size=10)
         self.health_typed_pub = rospy.Publisher(self.config['health_typed_topic'], HealthState, queue_size=10)
+        self.diagnostics_pub = rospy.Publisher(self.config['diagnostics_topic'], DiagnosticArray, queue_size=10) if self.config['publish_diagnostics'] else None
         self.evidence_pub = rospy.Publisher(self.config['runtime_evidence_topic'], String, queue_size=10)
         rospy.Subscriber(self.config['health_typed_topic'], HealthState, self._health_typed_cb, queue_size=50)
         rospy.Subscriber(self.config['mission_state_typed_topic'], MissionState, self._mission_state_cb, queue_size=50)
@@ -66,6 +68,8 @@ class SystemManagerNode:
             'mission_state_typed_topic': rospy.get_param('~mission_state_typed_topic', 'recon/mission_state_typed'),
             'control_command_topic': rospy.get_param('~control_command_topic', 'recon/system_manager/command'),
             'manager_state_topic': rospy.get_param('~manager_state_topic', 'recon/system_manager/state'),
+            'publish_diagnostics': bool(rospy.get_param('~publish_diagnostics', True)),
+            'diagnostics_topic': str(rospy.get_param('~diagnostics_topic', '/diagnostics')).strip() or '/diagnostics',
             'required_nodes': rospy.get_param('~required_nodes', ['vision_counter_node', 'mission_manager_node', 'mission_recorder_node', 'cmd_safety_mux_node', 'platform_bridge_node']),
             'enable_vision_component': bool(rospy.get_param('~enable_vision_component', True)),
             'enable_mission_component': bool(rospy.get_param('~enable_mission_component', True)),
@@ -111,6 +115,34 @@ class SystemManagerNode:
             raise RuntimeError('time_source_mode must be ros or wall')
         return config
 
+    def _diagnostic_level(self, status: str) -> int:
+        normalized = str(status).strip().lower()
+        if normalized in ('error', 'fatal', 'fault'):
+            return DiagnosticStatus.ERROR
+        if normalized in ('warn', 'warning', 'degraded', 'bootstrap', 'paused'):
+            return DiagnosticStatus.WARN
+        return DiagnosticStatus.OK
+
+    def _publish_diagnostic_status(self, *, name: str, level: int, message: str, details: Optional[dict] = None) -> None:
+        """Project system-manager health/readiness into the ROS diagnostics lane."""
+        if self.diagnostics_pub is None:
+            return
+        status = DiagnosticStatus()
+        status.name = name
+        status.hardware_id = 'runtime_grade:{}'.format(self.config['runtime_grade'])
+        status.level = int(level)
+        status.message = str(message).strip()
+        values = dict(details or {})
+        values.setdefault('runtime_grade', self.config['runtime_grade'])
+        status.values = [
+            KeyValue(key=str(key), value=JsonCodec.dumps(value) if isinstance(value, (dict, list, tuple)) else str(value))
+            for key, value in sorted(values.items(), key=lambda item: str(item[0]))
+        ]
+        array = DiagnosticArray()
+        array.header.stamp = self.clock.now_ros_time()
+        array.status.append(status)
+        self.diagnostics_pub.publish(array)
+
     def _publish_health(self, status: str, message: str, details: Optional[dict] = None) -> None:
         payload = {
             'stamp': self.clock.now_business_sec(),
@@ -131,6 +163,12 @@ class SystemManagerNode:
         typed.schema_version = payload['schema_version']
         typed.details_json = JsonCodec.dumps(payload.get('details', {}))
         self.health_typed_pub.publish(typed)
+        self._publish_diagnostic_status(
+            name='ruikang_recon_baseline/system_manager_node',
+            level=self._diagnostic_level(status),
+            message=payload['message'],
+            details=payload.get('details', {}),
+        )
         self.last_health_reason = payload['message']
         self.last_health_details = dict(payload.get('details', {}))
 
@@ -168,6 +206,18 @@ class SystemManagerNode:
         }
         evidence['details'].setdefault('runtime_grade', self.config['runtime_grade'])
         self.evidence_pub.publish(String(data=JsonCodec.dumps(evidence)))
+        state_level = self._diagnostic_level(payload['state'])
+        self._publish_diagnostic_status(
+            name='ruikang_recon_baseline/system_manager_state',
+            level=state_level,
+            message=payload['reason'] or payload['state'],
+            details={
+                'state': payload['state'],
+                'command': payload['command'],
+                'mission_state': self.core.last_mission_state,
+                **dict(details or {}),
+            },
+        )
         self.last_published_state = payload['state']
         if command:
             target = str((details or {}).get('target_node', '')).strip()

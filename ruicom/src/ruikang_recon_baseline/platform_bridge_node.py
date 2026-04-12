@@ -21,8 +21,9 @@ from .platform_adapters import (
     validate_platform_contract_bindings,
     validate_platform_runtime_strategy,
 )
-from .platform_contracts import validate_command_topic_flow_contract
+from .platform_contracts import validate_command_topic_flow_contract, validate_platform_runtime_interface_contract
 from .platform_bridge_core import PlatformBridgeSnapshot, evaluate_platform_bridge
+from .runtime_probes import evaluate_platform_runtime_probe
 from .vendor_bundle_preflight import build_vendor_bundle_preflight_report, enforce_vendor_bundle_preflight
 from .vendor_runtime_contracts import (
     build_vendor_runtime_binding_report,
@@ -177,6 +178,7 @@ class PlatformBridgeNode:
         if not str(config.get('safety_output_topic', '')).strip():
             config['safety_output_topic'] = str(capability.safety_defaults.get('output_topic', 'cmd_vel')).strip() or 'cmd_vel'
         config['command_flow_contract'] = validate_command_topic_flow_contract(config, owner='platform_bridge_node')
+        config['runtime_interface_contract'] = validate_platform_runtime_interface_contract(config, owner='platform_bridge_node')
         config['require_command_traffic_for_readiness'] = bool(config['profile_role'] == 'deploy')
         config['platform_contract'] = capability.summary()
         config['platform_runtime_contract'] = validate_platform_runtime_strategy(
@@ -457,6 +459,8 @@ class PlatformBridgeNode:
             'safety_output_topic': self.config['safety_output_topic'],
             'command_flow_contract': dict(self.config['command_flow_contract']),
             'command_flow_contract_satisfied': bool(self.config['command_flow_contract'].get('satisfied', True)),
+            'runtime_interface_contract': dict(self.config['runtime_interface_contract']),
+            'runtime_interface_contract_satisfied': bool(self.config['runtime_interface_contract'].get('satisfied', True)),
             'control_mode': self._last_mode,
             'estop_active': bool(self._last_estop or self._ultrasonic_hazard_active),
             'runtime_grade': self.config['runtime_grade'],
@@ -509,6 +513,7 @@ class PlatformBridgeNode:
         payload['details'].setdefault('vendor_bundle_preflight', dict(self.config.get('vendor_bundle_preflight', {})))
         payload['details'].setdefault('vendor_bundle_preflight_satisfied', bool(self.config.get('vendor_bundle_preflight_satisfied', True)))
         payload['details'].setdefault('command_flow_contract_satisfied', bool(self.config['command_flow_contract'].get('satisfied', True)))
+        payload['details'].setdefault('runtime_interface_contract_satisfied', bool(self.config['runtime_interface_contract'].get('satisfied', True)))
         payload['details'].setdefault('vendor_runtime_binding_report', dict(self.config.get('vendor_runtime_binding_report', {})))
         self.health_pub.publish(String(data=JsonCodec.dumps(payload)))
         typed = HealthState()

@@ -30,6 +30,15 @@ ACTION_BINDING_KEYS: Sequence[str] = (
 VALID_VENDOR_RUNTIME_MODES: Sequence[str] = ('native_noetic', 'isolated_legacy_workspace')
 VALID_MOTION_MODELS: Sequence[str] = ('differential', 'mecanum_holonomic')
 VALID_CMD_VEL_SEMANTICS: Sequence[str] = ('planar_x_yaw', 'planar_xy_yaw')
+PLATFORM_RUNTIME_INTERFACE_REQUIRED_TOPICS: Sequence[str] = (
+    'upstream_command_topic',
+    'command_input_topic',
+    'safety_output_topic',
+    'output_feedback_topic',
+    'control_mode_topic',
+    'estop_topic',
+    'runtime_evidence_topic',
+)
 
 
 
@@ -142,6 +151,26 @@ def validate_command_topic_flow_contract(
         'upstream_command_topic': upstream_command_topic,
         'command_input_topic': command_input_topic,
         'safety_output_topic': safety_output_topic,
+    }
+
+
+def validate_platform_runtime_interface_contract(config: Mapping[str, object], *, owner: str) -> Dict[str, object]:
+    """Validate the minimum runtime interface shared by bridge, safety and ops."""
+    missing_topics = [
+        key for key in PLATFORM_RUNTIME_INTERFACE_REQUIRED_TOPICS
+        if not normalize_binding_name(config.get(key, ''))
+    ]
+    if missing_topics:
+        raise ConfigurationError('{} missing platform runtime interface topics: {}'.format(owner, missing_topics))
+    command_flow = validate_command_topic_flow_contract(config, owner=owner)
+    return {
+        'satisfied': True,
+        'required_topic_keys': list(PLATFORM_RUNTIME_INTERFACE_REQUIRED_TOPICS),
+        'bound_topics': {
+            key: normalize_binding_name(config.get(key, ''))
+            for key in PLATFORM_RUNTIME_INTERFACE_REQUIRED_TOPICS
+        },
+        'command_flow': command_flow,
     }
 
 
