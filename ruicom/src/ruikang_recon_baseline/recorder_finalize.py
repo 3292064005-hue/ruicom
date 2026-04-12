@@ -62,6 +62,8 @@ class RecorderFinalizeController:
                 summary_v2.setdefault('writer_status', {})['dropped_messages'] = owner.writer.dropped_messages
             atomic_write_json(owner.final_summary_json, summary)
             atomic_write_json(owner.final_summary_v2_json, summary_v2)
+            atomic_write_json(owner.runtime_metrics_json, self.builder.build_runtime_metrics(owner))
+            atomic_write_json(owner.authoritative_replay_manifest_json, self.builder.build_authoritative_replay(owner))
             self.builder.write_csv_legacy(owner, summary['zone_results'])
             self.builder.write_csv_v2(owner, summary_v2['zone_results_dynamic'])
             if owner.config['official_report_mode'] != 'disabled':

@@ -1,0 +1,8 @@
+release_id: mowen_raicom_packaged_field_release
+release_version: 1.0.0
+verification_scope: field
+field_asset_id: mowen_raicom_packaged_field_verified
+detector_manifest_path: config/manifests/mowen_packaged_field_detector_manifest.json
+approved_at_utc: '2026-04-11T00:00:00Z'
+reviewer_id: repo_packaged_field_gate
+notes: Repository-packaged field-scoped release binding the packaged field asset to the field-grade ONNX detector manifest. Replace with measured competition release before live field operation.

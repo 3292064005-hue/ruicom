@@ -20,6 +20,7 @@
   <arg name="move_base_action_name" default="" />
   <arg name="use_sim_time" default="false" />
   <arg name="model_manifest_path" default="" />
+  <arg name="onnx_model_path" default="" />
   <arg name="vendor_runtime_contract_path" default="" />
   <arg name="enable_platform_bridge" default="true" />
   <arg name="field_asset_id" default="" />
@@ -56,6 +57,7 @@
     <arg name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
     <arg name="use_sim_time" value="$(arg use_sim_time)" />
     <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
     <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
   </include>
 </launch>

@@ -51,6 +51,8 @@ class MissionPlanExtensibilityTest(unittest.TestCase):
         ], dwell_default_sec=4.0)
         self.assertEqual(plan.execution_types(), ('recon_zone', 'hazard_avoid', 'facility_attack'))
         self.assertEqual(plan.step_at(1).metadata['hazard_type'], 'anti_tank_cone')
+        self.assertEqual(plan.step_at(1).metadata['allowed_detection_count'], 0)
+        self.assertEqual(plan.step_at(1).metadata['required_observation_frames'], 1)
         self.assertEqual(plan.step_at(2).normalized_objective_type, 'facility_attack')
 
     def test_from_task_specs_supports_graph_edges_and_waypoint_only(self):
@@ -75,6 +77,17 @@ class MissionPlanExtensibilityTest(unittest.TestCase):
         self.assertAlmostEqual(plan.step_at(1).quiesce_sec, 1.5)
         self.assertEqual(plan.next_index_for_outcome(0, 'success'), 1)
         self.assertEqual(plan.next_index_for_outcome(1, 'failure'), 0)
+
+    def test_invalid_facility_attack_mode_is_rejected(self):
+        with self.assertRaises(Exception):
+            MissionPlan.from_task_specs([
+                {
+                    'step_id': 'facility_bad',
+                    'task_type': 'facility_attack',
+                    'metadata': {'attack_mode': 'fire_and_forget'},
+                    'waypoint': {'name': 'zone_x', 'x': 2.0, 'y': 0.0, 'yaw_deg': 0.0, 'timeout_sec': 20.0, 'route_id': 'zone_x__0'},
+                },
+            ], dwell_default_sec=4.0)
 
 
 if __name__ == '__main__':

@@ -53,9 +53,11 @@ class MissionRecorderNode:
         self.final_summary_v2_json = os.path.join(self.output_root, 'final_summary_v2.json')
         self.final_summary_v2_csv = os.path.join(self.output_root, 'final_summary_v2.csv')
         self.current_snapshot_json = os.path.join(self.output_root, 'summary_snapshot.json')
+        self.runtime_metrics_json = os.path.join(self.output_root, 'runtime_metrics.json')
         self.current_snapshot_v2_json = os.path.join(self.output_root, 'summary_snapshot_v2.json')
         self.official_report_json = os.path.join(self.output_root, 'official_report.json')
         self.official_report_receipt_json = os.path.join(self.output_root, 'official_report_submission_receipt.json')
+        self.authoritative_replay_manifest_json = os.path.join(self.output_root, 'authoritative_replay_manifest.json')
         self.submission_contract = load_and_validate_submission_contract(self.config['official_report_contract_path']) if self.config['official_report_mode'] == 'judge_contract' else None
         self.last_submission_receipt: Dict[str, object] = {}
 
@@ -181,6 +183,8 @@ class MissionRecorderNode:
             raise ConfigurationError('class_schema_mismatch_policy must be one of: warn, error')
         if config['time_source_mode'] not in ('ros', 'wall'):
             raise ConfigurationError('time_source_mode must be ros or wall')
+        if config['runtime_grade'] not in ('integration', 'contract', 'reference', 'field'):
+            raise ConfigurationError('runtime_grade must be one of: integration, contract, reference, field')
         if config['official_report_mode'] not in ('disabled', 'artifact', 'judge_contract'):
             raise ConfigurationError('official_report_mode must be disabled, artifact or judge_contract')
         config['official_report_contract_path'] = expand_path(config['official_report_contract_path']) if str(config['official_report_contract_path']).strip() else ''
@@ -275,6 +279,7 @@ class MissionRecorderNode:
             'official_report_adapter_type': str((self.submission_contract or {}).get('adapter_type', '')).strip(),
             'last_submission_receipt': dict(self.last_submission_receipt or {}),
             'acceptance_stage': self.config['acceptance_stage'],
+            'runtime_grade': self.config['runtime_grade'],
         }
         return payload
 

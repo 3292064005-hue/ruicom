@@ -20,6 +20,7 @@
   <arg name="move_base_action_name" default="" />
   <arg name="use_sim_time" default="false" />
   <arg name="model_manifest_path" default="" />
+  <arg name="onnx_model_path" default="" />
   <arg name="vendor_runtime_contract_path" default="" />
   <arg name="upstream_feedback_topic" default="" />
   <arg name="upstream_odom_topic" default="" />
@@ -33,6 +34,7 @@
   <arg name="field_asset_package_root" default="" />
   <arg name="require_verified_field_asset" default="true" />
   <arg name="required_field_asset_verification_scope" default="contract" />
+  <arg name="required_field_asset_provenance" default="" />
 
   <include file="$(find ruikang_recon_baseline)/launch/core.launch">
     <arg name="namespace" value="$(arg namespace)" />
@@ -61,8 +63,10 @@
     <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
     <arg name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
     <arg name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+    <arg name="required_field_asset_provenance" value="$(arg required_field_asset_provenance)" />
     <arg name="use_sim_time" value="$(arg use_sim_time)" />
     <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
     <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
     <arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
     <arg name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />

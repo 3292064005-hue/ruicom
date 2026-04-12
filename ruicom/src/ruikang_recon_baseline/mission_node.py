@@ -12,6 +12,7 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from actionlib_msgs.msg import GoalStatusArray
 
+from .behavior_actions import build_behavior_action_backend
 from .common import (
     SCHEMA_VERSION,
     ConfigurationError,
@@ -55,6 +56,7 @@ class MissionManagerNode:
         'dispatch_started_at', 'current_capture_deadline', 'last_health_publish_mono',
         'last_tf_warning_mono', 'dispatch_quiesce_until', 'event_counter',
         'schema_blocked_reason', 'preflight_deadline', 'last_preflight_warning_mono',
+        'active_behavior_command', 'active_behavior_feedback', 'behavior_action_deadline', 'behavior_dwell_after_success',
     }
 
     def __getattr__(self, name):
@@ -136,6 +138,7 @@ class MissionManagerNode:
         self.tf_pose_source: Optional[TfLookupPoseSource] = None
         self._configure_pose_source()
         self.nav_adapter, self.nav_capability = self._build_navigation_adapter()
+        self.behavior_backend = build_behavior_action_backend(self.config, clock=self.clock)
         self._last_navigation_runtime_live_sec = 0.0
         self._last_navigation_feedback_live_sec = 0.0
         self._last_navigation_result_live_sec = 0.0
@@ -169,6 +172,8 @@ class MissionManagerNode:
             preflight_timeout_sec=self.config['preflight_timeout_sec'],
             class_names=self.class_names,
             class_schema_hash=self.class_schema_hash,
+            behavior_backend=self.behavior_backend,
+            behavior_action_timeout_sec=self.config['behavior_action_timeout_sec'],
         )
         self.paused_from_state = ''
         runtime_contract = dict(self.config.get('navigation_runtime_contract', {}))
@@ -176,7 +181,7 @@ class MissionManagerNode:
         runtime_binding_summary = getattr(self.nav_adapter, 'runtime_binding_summary', None)
         if callable(runtime_binding_summary):
             runtime_contract['runtime_binding'] = runtime_binding_summary()
-        self._publish_health('ok', 'node_ready', {'profile_role': self.config['profile_role'], 'lifecycle_managed': self.config['lifecycle_managed'], 'route_bound': bool(self.route), 'navigation_contract_satisfied': bool(self.config.get('navigation_contract_satisfied', False)), 'field_asset_ready': bool(self.config.get('field_asset_contract_satisfied', False)), 'field_asset_verified': bool(self.config.get('field_asset_verified', False)), 'field_asset_state': str(self.config.get('field_asset_state', '')).strip(), 'field_asset_verification_scope': str(self.config.get('field_asset_verification_scope', '')).strip(), 'task_graph_enabled': bool(self.config.get('tasks')), 'navigation_capability': runtime_contract, 'navigation_runtime_probe': dict(self.navigation_runtime_probe), 'navigation_runtime_probe_satisfied': bool(self.navigation_runtime_probe.get('satisfied', False)), 'vendor_runtime_contract_satisfied': bool(self.config.get('vendor_runtime_contract_satisfied', True)), 'vendor_runtime_binding_report': dict(self.config.get('vendor_runtime_binding_report', {})), 'vendor_bundle_preflight': dict(self.config.get('vendor_bundle_preflight', {})), 'vendor_bundle_preflight_satisfied': bool(self.config.get('vendor_bundle_preflight_satisfied', True)), 'pose_source_ready': self.arrival_evaluator.pose_fresh(self.clock.now_business_sec())})
+        self._publish_health('ok', 'node_ready', {'profile_role': self.config['profile_role'], 'runtime_grade': self.config['runtime_grade'], 'lifecycle_managed': self.config['lifecycle_managed'], 'route_bound': bool(self.route), 'navigation_contract_satisfied': bool(self.config.get('navigation_contract_satisfied', False)), 'field_asset_ready': bool(self.config.get('field_asset_contract_satisfied', False)), 'field_asset_verified': bool(self.config.get('field_asset_verified', False)), 'field_asset_state': str(self.config.get('field_asset_state', '')).strip(), 'field_asset_verification_scope': str(self.config.get('field_asset_verification_scope', '')).strip(), 'task_graph_enabled': bool(self.config.get('tasks')), 'navigation_capability': runtime_contract, 'behavior_action_contract': dict(self.config.get('behavior_action_contract', {})), 'behavior_backend_runtime': dict(self.behavior_backend.runtime_binding_summary()), 'navigation_runtime_probe': dict(self.navigation_runtime_probe), 'navigation_runtime_probe_satisfied': bool(self.navigation_runtime_probe.get('satisfied', False)), 'vendor_runtime_contract_satisfied': bool(self.config.get('vendor_runtime_contract_satisfied', True)), 'vendor_runtime_binding_report': dict(self.config.get('vendor_runtime_binding_report', {})), 'vendor_bundle_preflight': dict(self.config.get('vendor_bundle_preflight', {})), 'vendor_bundle_preflight_satisfied': bool(self.config.get('vendor_bundle_preflight_satisfied', True)), 'pose_source_ready': self.arrival_evaluator.pose_fresh(self.clock.now_business_sec())})
         if self.config['auto_start']:
             self.executor.start()
         rospy.on_shutdown(self._on_shutdown)
@@ -348,7 +353,10 @@ class MissionManagerNode:
         payload['details'].setdefault('current_task_type', str(self.current_task_type).strip())
         payload['details'].setdefault('current_task_objective', str(self.current_task_objective).strip())
         payload['details'].setdefault('lifecycle_managed', bool(self.config['lifecycle_managed']))
+        payload['details'].setdefault('runtime_grade', str(self.config.get('runtime_grade', 'integration')).strip())
         payload['details'].setdefault('route_bound', bool(self.route))
+        payload['details'].setdefault('behavior_action_contract', dict(self.config.get('behavior_action_contract', {})))
+        payload['details'].setdefault('behavior_backend_runtime', dict(self.behavior_backend.runtime_binding_summary()))
         payload['details'].setdefault('pose_source_ready', self.arrival_evaluator.pose_fresh(self.clock.now_business_sec()))
         payload['details'].setdefault('navigation_contract_satisfied', bool(self.config.get('navigation_contract_satisfied', False)))
         self.navigation_runtime_probe = self._navigation_runtime_probe()
@@ -637,7 +645,10 @@ class MissionManagerNode:
         payload['details'].setdefault('current_task_type', str(self.current_task_type).strip())
         payload['details'].setdefault('current_task_objective', str(self.current_task_objective).strip())
         payload['details'].setdefault('lifecycle_managed', bool(self.config['lifecycle_managed']))
+        payload['details'].setdefault('runtime_grade', str(self.config.get('runtime_grade', 'integration')).strip())
         payload['details'].setdefault('route_bound', bool(self.route))
+        payload['details'].setdefault('behavior_action_contract', dict(self.config.get('behavior_action_contract', {})))
+        payload['details'].setdefault('behavior_backend_runtime', dict(self.behavior_backend.runtime_binding_summary()))
         payload['details'].setdefault('pose_source_ready', self.arrival_evaluator.pose_fresh(self.clock.now_business_sec()))
         payload['details'].setdefault('navigation_contract_satisfied', bool(self.config.get('navigation_contract_satisfied', False)))
         self.navigation_runtime_probe = self._navigation_runtime_probe()
@@ -699,6 +710,7 @@ class MissionManagerNode:
             'current_step_id': str(self.current_step_id).strip(),
             'current_task_type': str(self.current_task_type).strip(),
             'current_task_objective': str(self.current_task_objective).strip(),
+            'runtime_grade': str(self.config.get('runtime_grade', 'integration')).strip(),
             **(details or {}),
         }
         if self.config['embed_zone_results_in_state']:

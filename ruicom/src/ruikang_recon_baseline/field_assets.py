@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import yaml
 
 from .domain_models import ConfigurationError
-from .runtime_paths import expand_path
+from .runtime_paths import expand_path, resolve_package_relative_path
 
 
 _VALID_VERIFICATION_SCOPES = ('contract', 'reference', 'field')
@@ -39,9 +39,10 @@ class FieldAsset:
         No explicit exception is raised during property access.
 
     Boundary behavior:
-        Verification scope is ordered ``contract < reference < field`` so a
-        repository-managed reference asset can satisfy reference deploy gates
-        without being mistaken for a real measured field deployment asset.
+        Verification scope is ordered ``contract < reference < field``. Provenance
+        stays separate from scope so repository-packaged field assets can support
+        code-delivery closure without being mistaken for measured competition
+        captures.
     """
 
     asset_id: str
@@ -64,6 +65,11 @@ class FieldAsset:
     def verification_scope(self) -> str:
         scope = str(self.metadata.get('verification_scope', '')).strip().lower()
         return scope if scope in _VALID_VERIFICATION_SCOPES else ''
+
+    @property
+    def provenance(self) -> str:
+        provenance = str(self.metadata.get('provenance', '')).strip().lower()
+        return provenance or 'unspecified'
 
     def satisfies_scope(self, required_scope: str) -> bool:
         """Return whether the asset satisfies the requested verification scope.
@@ -99,10 +105,24 @@ class FieldAsset:
 
 
 
-def _default_search_root(package_root: str | None = None) -> Path:
+def _candidate_search_roots(package_root: str | None = None) -> tuple[Path, ...]:
     if package_root:
-        return Path(expand_path(package_root))
-    return Path(__file__).resolve().parents[2] / 'config' / 'field_assets'
+        base = Path(expand_path(package_root)).resolve()
+        candidates = [base]
+        nested = base / 'config' / 'field_assets'
+        if nested.exists():
+            candidates.insert(0, nested)
+    else:
+        candidates = [Path(__file__).resolve().parents[2] / 'config' / 'field_assets']
+    ordered = []
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(candidate)
+    return tuple(ordered)
 
 
 
@@ -116,11 +136,12 @@ def resolve_field_asset_path(*, field_asset_id: str = '', field_asset_path: str 
     normalized_id = str(field_asset_id).strip()
     if not normalized_id:
         return None
-    root = _default_search_root(package_root)
-    resolved = root / '{}.yaml'.format(normalized_id)
-    if not resolved.exists():
-        raise ConfigurationError('field_asset_id {} not found under {}'.format(normalized_id, root))
-    return resolved
+    roots = _candidate_search_roots(package_root)
+    for root in roots:
+        resolved = root / '{}.yaml'.format(normalized_id)
+        if resolved.exists():
+            return resolved
+    raise ConfigurationError('field_asset_id {} not found under {}'.format(normalized_id, ', '.join(str(item) for item in roots)))
 
 
 
@@ -162,6 +183,22 @@ def _build_region_calibration(payload: dict, resolved_path: Path) -> Dict[str, A
     }
 
 
+def _infer_asset_provenance(asset_state: str, verification_scope: str) -> str:
+    state = str(asset_state).strip().lower()
+    scope = str(verification_scope).strip().lower()
+    if state.startswith('packaged_'):
+        return 'packaged'
+    if 'reference' in state or scope == 'reference':
+        return 'reference'
+    if scope == 'field' and ('measured' in state or 'survey' in state or state == 'field_verified'):
+        return 'measured'
+    if scope == 'field':
+        return 'field_unmeasured'
+    if scope == 'contract':
+        return 'contract'
+    return 'unspecified'
+
+
 def _build_metadata(payload: dict, resolved_path: Path) -> Dict[str, object]:
     asset_state = str(payload.get('asset_state', '')).strip().lower() or 'provisional'
     verified = bool(payload.get('verified', False))
@@ -174,19 +211,44 @@ def _build_metadata(payload: dict, resolved_path: Path) -> Dict[str, object]:
     elif verification_scope:
         if verification_scope not in _VALID_VERIFICATION_SCOPES:
             raise ConfigurationError('field asset {} has invalid verification_scope {}'.format(resolved_path.stem, verification_scope))
+    measured_at_utc = str(payload.get('measured_at_utc', '')).strip()
+    collection_batch_id = str(payload.get('collection_batch_id', '')).strip()
+    operator_id = str(payload.get('operator_id', '')).strip()
+    calibration_bundle_id = str(payload.get('calibration_bundle_id', '')).strip()
+    camera_calibration_id = str(payload.get('camera_calibration_id', '')).strip()
+    detector_manifest_path = str(payload.get('detector_manifest_path', '')).strip()
+    if verified and verification_scope == 'field':
+        missing = [
+            name for name, value in [
+                ('measured_at_utc', measured_at_utc),
+                ('collection_batch_id', collection_batch_id),
+                ('operator_id', operator_id),
+                ('calibration_bundle_id', calibration_bundle_id),
+                ('camera_calibration_id', camera_calibration_id),
+                ('detector_manifest_path', detector_manifest_path),
+            ]
+            if not value
+        ]
+        if missing:
+            raise ConfigurationError('field asset {} missing field verification provenance {}'.format(resolved_path.stem, ', '.join(missing)))
     return {
         'source_path': str(resolved_path),
         'map_id': str(payload.get('map_id', '')).strip(),
-        'camera_calibration_id': str(payload.get('camera_calibration_id', '')).strip(),
+        'camera_calibration_id': camera_calibration_id,
         'asset_version': str(payload.get('asset_version', '')).strip(),
         'asset_state': asset_state,
         'verified': verified,
         'verification_scope': verification_scope,
         'route_layout_id': str(payload.get('route_layout_id', '')).strip(),
         'named_region_layout_id': str(payload.get('named_region_layout_id', '')).strip(),
-        'calibration_bundle_id': str(payload.get('calibration_bundle_id', '')).strip(),
+        'calibration_bundle_id': calibration_bundle_id,
         'region_calibration': _build_region_calibration(payload, resolved_path),
+        'measured_at_utc': measured_at_utc,
+        'collection_batch_id': collection_batch_id,
+        'operator_id': operator_id,
+        'detector_manifest_path': detector_manifest_path,
         'notes': str(payload.get('notes', '')).strip(),
+        'provenance': _infer_asset_provenance(asset_state, verification_scope),
     }
 
 
@@ -225,17 +287,67 @@ def _assert_compatible_inline(name: str, inline_value, asset_value, *, owner: st
 
 
 
+def _apply_field_asset_manifest_alignment(config: dict, asset: FieldAsset, *, owner: str) -> None:
+    """Align one deploy detector manifest with field-asset provenance.
+
+    Args:
+        config: Mutable component configuration mapping.
+        asset: Resolved field asset.
+        owner: Human-readable configuration owner.
+
+    Returns:
+        None. The configuration mapping is updated in place.
+
+    Raises:
+        ConfigurationError: If the component already declares a conflicting
+            detector manifest path.
+
+    Boundary behavior:
+        Field assets may carry a repository-relative detector manifest path. When
+        the component did not declare ``model_manifest_path`` explicitly, the
+        field-asset path is injected automatically. If both are present, they
+        must resolve to the same file.
+    """
+    manifest_hint = str(asset.metadata.get('detector_manifest_path', '')).strip()
+    if not manifest_hint:
+        return
+    resolved_asset_manifest = resolve_package_relative_path(manifest_hint) or str(Path(expand_path(manifest_hint)).resolve())
+    existing_manifest = str(config.get('model_manifest_path', '')).strip()
+    if existing_manifest:
+        resolved_existing = resolve_package_relative_path(existing_manifest) or str(Path(expand_path(existing_manifest)).resolve())
+        if resolved_existing != resolved_asset_manifest:
+            raise ConfigurationError(
+                '{} model_manifest_path {} conflicts with field asset detector manifest {}'.format(
+                    owner,
+                    existing_manifest,
+                    manifest_hint,
+                )
+            )
+    else:
+        config['model_manifest_path'] = manifest_hint
+    config['field_asset_detector_manifest_path'] = manifest_hint
+    config['field_asset_detector_manifest_resolved_path'] = resolved_asset_manifest
+
+
+
 def _inject_asset_contract(config: dict, asset: FieldAsset, *, owner: str) -> None:
     config['field_asset_id'] = asset.asset_id
     config['field_asset_metadata'] = dict(asset.metadata)
     config['field_asset_verified'] = bool(asset.verified)
     config['field_asset_state'] = asset.state
     config['field_asset_verification_scope'] = asset.verification_scope
+    config['field_asset_provenance'] = asset.provenance
     required_scope = str(config.get('required_field_asset_verification_scope', '')).strip().lower() or 'contract'
+    required_provenance = str(config.get('required_field_asset_provenance', '')).strip().lower()
     require_verified = bool(config.get('require_verified_field_asset', False))
     if required_scope not in _VALID_VERIFICATION_SCOPES:
         raise ConfigurationError('required_field_asset_verification_scope must be one of {}'.format(', '.join(_VALID_VERIFICATION_SCOPES)))
     config['required_field_asset_verification_scope'] = required_scope
+    if required_provenance:
+        allowed = {'contract', 'reference', 'packaged', 'field_unmeasured', 'measured'}
+        if required_provenance not in allowed:
+            raise ConfigurationError('required_field_asset_provenance must be one of {}'.format(', '.join(sorted(allowed))))
+        config['required_field_asset_provenance'] = required_provenance
     if require_verified and not asset.verified:
         raise ConfigurationError('{} requires verified field asset but {} is state={} verified={}'.format(owner, asset.asset_id, asset.state, asset.verified))
     if require_verified and not asset.satisfies_scope(required_scope):
@@ -247,12 +359,41 @@ def _inject_asset_contract(config: dict, asset: FieldAsset, *, owner: str) -> No
                 asset.verification_scope or 'unverified',
             )
         )
+    if require_verified and required_provenance and asset.provenance != required_provenance:
+        raise ConfigurationError(
+            '{} requires {} field asset provenance but {} provides provenance={}'.format(
+                owner,
+                required_provenance,
+                asset.asset_id,
+                asset.provenance,
+            )
+        )
     config['field_asset_contract_satisfied'] = True
 
 
 
+
+
+def _apply_field_asset_release_manifest(config: dict, *, owner: str) -> None:
+    from .field_asset_release import load_field_asset_release
+
+    release = load_field_asset_release(str(config.get('field_asset_release_manifest_path', '')).strip())
+    if release is None:
+        return
+    config['field_asset_release_manifest'] = release.to_summary()
+    release_asset = release.field_asset
+    existing_asset_id = str(config.get('field_asset_id', '')).strip()
+    if existing_asset_id and existing_asset_id != release_asset.asset_id:
+        raise ConfigurationError(f"{owner} field_asset_id {existing_asset_id} conflicts with release manifest asset {release_asset.asset_id}")
+    existing_manifest = str(config.get('model_manifest_path', '')).strip()
+    if existing_manifest and existing_manifest != release.detector_manifest_path:
+        raise ConfigurationError(f"{owner} model_manifest_path {existing_manifest} conflicts with release manifest detector manifest {release.detector_manifest_path}")
+    config['field_asset_id'] = release_asset.asset_id
+    config['model_manifest_path'] = release.detector_manifest_path
+
 def apply_field_asset_to_mission_config(config: dict, *, package_root: str | None = None, owner: str = 'mission', domain: str | None = None) -> tuple[dict, Optional[FieldAsset]]:
     _ = domain
+    _apply_field_asset_release_manifest(config, owner=owner)
     asset = load_field_asset(
         field_asset_id=str(config.get('field_asset_id', '')).strip(),
         field_asset_path=str(config.get('field_asset_path', '')).strip(),
@@ -270,6 +411,7 @@ def apply_field_asset_to_mission_config(config: dict, *, package_root: str | Non
     config['expected_frame_regions'] = list(asset.expected_region_names)
     if not str(config.get('comparison_frame', '')).strip():
         config['comparison_frame'] = asset.comparison_frame
+    _apply_field_asset_manifest_alignment(config, asset, owner=owner)
     _inject_asset_contract(config, asset, owner=owner)
     return config, asset
 
@@ -277,6 +419,7 @@ def apply_field_asset_to_mission_config(config: dict, *, package_root: str | Non
 
 def apply_field_asset_to_vision_config(config: dict, *, package_root: str | None = None, owner: str = 'vision', domain: str | None = None) -> tuple[dict, Optional[FieldAsset]]:
     _ = domain
+    _apply_field_asset_release_manifest(config, owner=owner)
     asset = load_field_asset(
         field_asset_id=str(config.get('field_asset_id', '')).strip(),
         field_asset_path=str(config.get('field_asset_path', '')).strip(),
@@ -297,5 +440,6 @@ def apply_field_asset_to_vision_config(config: dict, *, package_root: str | None
         config['region_calibration'] = region_calibration
         if str(config.get('frame_region_adapter_type', '')).strip().lower() in ('none', 'named_regions', ''):
             config['frame_region_adapter_type'] = 'calibrated_named_regions'
+    _apply_field_asset_manifest_alignment(config, asset, owner=owner)
     _inject_asset_contract(config, asset, owner=owner)
     return config, asset

@@ -27,6 +27,7 @@
   <arg name="field_asset_package_root" default="" />
   <arg name="require_verified_field_asset" default="false" />
   <arg name="required_field_asset_verification_scope" default="contract" />
+  <arg name="required_field_asset_provenance" default="" />
 
   <arg name="output_root" default="" />
   <arg name="camera_topic" default="" />
@@ -36,6 +37,7 @@
   <arg name="move_base_action_name" default="" />
   <arg name="use_sim_time" default="false" />
   <arg name="model_manifest_path" default="" />
+  <arg name="onnx_model_path" default="" />
   <arg name="vendor_runtime_contract_path" default="" />
   <arg name="upstream_feedback_topic" default="" />
   <arg name="upstream_odom_topic" default="" />
@@ -70,9 +72,11 @@
         <param if="$(eval arg('field_asset_path') != '')" name="field_asset_path" value="$(arg field_asset_path)" />
         <param if="$(eval arg('field_asset_package_root') != '')" name="field_asset_package_root" value="$(arg field_asset_package_root)" />
         <param if="$(eval arg('model_manifest_path') != '')" name="model_manifest_path" value="$(arg model_manifest_path)" />
+        <param if="$(eval arg('onnx_model_path') != '')" name="onnx_model_path" value="$(arg onnx_model_path)" />
         <param if="$(eval arg('vendor_runtime_contract_path') != '')" name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
         <param name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
         <param name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+      <param name="required_field_asset_provenance" value="$(arg required_field_asset_provenance)" />
       </node>
     </group>
 
@@ -90,9 +94,11 @@
         <param if="$(eval arg('field_asset_id') != '')" name="field_asset_id" value="$(arg field_asset_id)" />
         <param if="$(eval arg('field_asset_path') != '')" name="field_asset_path" value="$(arg field_asset_path)" />
         <param if="$(eval arg('field_asset_package_root') != '')" name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+        <param if="$(eval arg('model_manifest_path') != '')" name="model_manifest_path" value="$(arg model_manifest_path)" />
         <param if="$(eval arg('vendor_runtime_contract_path') != '')" name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
         <param name="require_verified_field_asset" value="$(arg require_verified_field_asset)" />
         <param name="required_field_asset_verification_scope" value="$(arg required_field_asset_verification_scope)" />
+      <param name="required_field_asset_provenance" value="$(arg required_field_asset_provenance)" />
         <param if="$(arg enable_system_manager)" name="auto_start" value="false" />
         <param if="$(arg enable_system_manager)" name="lifecycle_managed" value="true" />
         <param if="$(arg enable_system_manager)" name="control_command_topic" value="recon/system_manager/command" />

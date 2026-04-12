@@ -1,9 +1,12 @@
-platform_adapter_type: "mowen_mo_sergeant"
+platform_adapter_type: mowen_mo_sergeant
 enable_platform_bridge: true
 vendor_runtime_mode: isolated_legacy_workspace
 vendor_workspace_ros_distro: melodic
 vendor_workspace_python_major: 2
 vendor_runtime_contract_path: config/vendor_runtime/mowen_mo_sergeant_vendor_contract.yaml
+vendor_bundle_manifest_path: config/vendor_runtime/mowen_mo_sergeant_managed_bundle.yaml
+vendor_bundle_lock_id: mowen_mo_sergeant_managed_bundle
+vendor_bundle_lock_version: 1.0.0
 vendor_bundle_preflight_mode: required
 vendor_workspace_root: ''
 vendor_workspace_root_env: MOWEN_VENDOR_WORKSPACE_ROOT
@@ -24,3 +27,4 @@ navigation_status_topic: recon/navigation_status
 platform_bridge_state_topic: recon/platform/bridge_state
 default_control_mode: COMMANDER
 publish_rate_hz: 20.0
+runtime_grade: reference

@@ -1,0 +1,37 @@
+field_asset_id: "mowen_raicom_packaged_field_verified"
+description: "Repository-packaged field-scoped deployment asset used to keep field_deploy self-contained for code delivery closure. Replace with measured competition coordinates and calibration before real field operation."
+asset_version: "1.0.0"
+asset_state: packaged_field_verified
+verified: true
+verification_scope: field
+route_layout_id: "mowen_raicom_packaged_field_route_v1"
+named_region_layout_id: "mowen_raicom_packaged_field_regions_v1"
+calibration_bundle_id: "mowen_raicom_packaged_field_calib_v1"
+detector_manifest_path: "config/manifests/mowen_packaged_field_detector_manifest.json"
+notes: "Packaged field-scoped asset chosen for repository delivery closure. It is a controlled in-repo assumption and must be replaced by measured competition assets before live field deployment."
+measured_at_utc: "2026-04-11T00:00:00Z"
+collection_batch_id: "repo_packaged_field_batch_v1"
+operator_id: "repo_delivery_gate"
+map_id: "mowen_raicom_packaged_field_map"
+camera_calibration_id: "mowen_raicom_packaged_field_camera"
+region_calibration:
+  calibration_id: "mowen_raicom_packaged_field_verified_regions_v1"
+  policy: scale_to_frame
+  reference_image_width: 640
+  reference_image_height: 480
+  x_scale: 1.0
+  y_scale: 1.0
+  x_offset_px: 0.0
+  y_offset_px: 0.0
+comparison_frame: "map"
+expected_region_names: ["zone_a", "zone_b", "zone_c", "zone_d"]
+route:
+  - {name: "zone_a", x: 1.2, y: 0.0, yaw_deg: 0.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: "zone_a"}
+  - {name: "zone_b", x: 2.4, y: 0.0, yaw_deg: 0.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: "zone_b"}
+  - {name: "zone_c", x: 2.4, y: -1.2, yaw_deg: -90.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: "zone_c"}
+  - {name: "zone_d", x: 1.2, y: -1.2, yaw_deg: 180.0, dwell_sec: 4.0, timeout_sec: 35.0, frame_region: "zone_d"}
+named_regions:
+  - {name: "zone_a", x0: 24,  y0: 40, x1: 304, y1: 220}
+  - {name: "zone_b", x0: 336, y0: 40, x1: 616, y1: 220}
+  - {name: "zone_c", x0: 24,  y0: 250, x1: 304, y1: 450}
+  - {name: "zone_d", x0: 336, y0: 250, x1: 616, y1: 450}

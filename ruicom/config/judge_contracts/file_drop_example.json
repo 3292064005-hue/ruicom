@@ -1,6 +1,7 @@
 {
+  "contract_id": "example.file_drop.v1",
   "adapter_type": "file_drop",
-  "endpoint_path": "~/.ros/ruikang_recon/judge_dropbox/official_report.json",
-  "receipt_path": "",
+  "endpoint_path": "~/.ros/ruikang_recon/example_official_report.json",
+  "receipt_path": "~/.ros/ruikang_recon/example_official_report_receipt.json",
   "timeout_sec": 5.0
 }

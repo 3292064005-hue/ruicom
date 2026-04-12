@@ -141,6 +141,14 @@ def load_vendor_runtime_contract(path: str, *, package_root: str | None = None) 
             for param_name, value in raw_bindings.items()
             if str(param_name).strip()
         }
+    managed_entrypoints = payload.get('managed_entrypoints', {}) or {}
+    if managed_entrypoints not in ('', None) and not isinstance(managed_entrypoints, dict):
+        raise ConfigurationError('vendor runtime contract {} managed_entrypoints must be a mapping'.format(resolved))
+    contract['managed_entrypoints'] = {
+        str(name).strip(): str(value).strip()
+        for name, value in dict(managed_entrypoints).items()
+        if str(name).strip() and str(value).strip()
+    }
     contract['bindings'] = bindings
     if not contract['contract_id']:
         raise ConfigurationError('vendor runtime contract {} requires non-empty contract_id'.format(resolved))
@@ -192,6 +200,7 @@ def build_vendor_runtime_binding_report(contract_summary: Mapping[str, object], 
         'path': str(contract_summary.get('path', '')).strip(),
         'vendor_workspace_name': str(contract_summary.get('vendor_workspace_name', '')).strip(),
         'vendor_entrypoints': dict(contract_summary.get('vendor_entrypoints', {}) or {}),
+        'managed_entrypoints': dict(contract_summary.get('managed_entrypoints', {}) or {}),
         'bindings': evidence_bindings,
     }
 
@@ -251,5 +260,6 @@ def validate_vendor_runtime_contract(contract: Mapping[str, object], config: Map
         'path': contract_path or str(contract.get('path', '')).strip(),
         'vendor_workspace_name': str(contract.get('vendor_workspace_name', '')).strip(),
         'vendor_entrypoints': dict(contract.get('vendor_entrypoints', {}) or {}),
+        'managed_entrypoints': dict(contract.get('managed_entrypoints', {}) or {}),
         'required_bindings': required_bindings,
     }

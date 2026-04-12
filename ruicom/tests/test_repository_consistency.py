@@ -131,6 +131,13 @@ class RepositoryConsistencyTest(unittest.TestCase):
         self.assertEqual(baseline_safety.get('profile_role'), 'deploy')
         self.assertTrue(baseline_safety.get('lifecycle_managed'))
 
+    def test_vendor_sidecar_launch_exposes_feedback_source_contract_gate(self):
+        content = (ROOT / 'launch/mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
+        self.assertIn('vendor_sidecar_contract_node.py', content)
+        self.assertIn('native_feedback_source_declared', content)
+        self.assertIn('require_explicit_feedback_source', content)
+        self.assertIn('required="true"', content)
+
     def test_ci_runs_profile_contract_validator(self):
         content = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
         self.assertIn('Validate profile contracts', content)
@@ -196,33 +203,40 @@ class RepositoryConsistencyTest(unittest.TestCase):
             'required_field_asset_verification_scope': '$(arg required_field_asset_verification_scope)',
             'use_sim_time': '$(arg use_sim_time)',
             'model_manifest_path': '$(arg model_manifest_path)',
+            'onnx_model_path': '$(arg onnx_model_path)',
             'vendor_runtime_contract_path': '$(arg vendor_runtime_contract_path)',
         }
         self.assertEqual(payload, expected)
 
-    def test_field_deploy_launch_forces_verified_field_asset_gate(self):
+    def test_mowen_vendor_runtime_launch_forwards_bundle_metadata_args(self):
+        payload = _load_include_arg_values(ROOT / 'launch' / 'mowen_vendor_runtime.launch')
+        self.assertEqual(payload.get('vendor_bundle_manifest_path'), '$(arg vendor_bundle_manifest_path)')
+        self.assertEqual(payload.get('vendor_bundle_lock_id'), '$(arg vendor_bundle_lock_id)')
+        self.assertEqual(payload.get('vendor_bundle_lock_version'), '$(arg vendor_bundle_lock_version)')
+
+    def test_mowen_vendor_runtime_launch_forwards_feedback_source_contract_args(self):
+        payload = _load_include_arg_values(ROOT / 'launch' / 'mowen_vendor_runtime.launch')
+        self.assertEqual(payload.get('vendor_execution_feedback_topic'), '$(arg vendor_execution_feedback_topic)')
+        self.assertEqual(payload.get('native_feedback_source_declared'), '$(arg native_feedback_source_declared)')
+        self.assertEqual(payload.get('require_explicit_feedback_source'), '$(arg require_explicit_feedback_source)')
+
+    def test_field_deploy_launch_is_compatibility_alias_of_real_field_deploy(self):
         payload = _load_include_arg_values(ROOT / 'launch' / 'field_deploy.launch')
-        self.assertEqual(payload.get('require_verified_field_asset'), 'true')
-        self.assertEqual(payload.get('required_field_asset_verification_scope'), 'field')
+        content = (ROOT / 'launch' / 'field_deploy.launch').read_text(encoding='utf-8')
+        self.assertIn('launch/real_field_deploy.launch', content)
         for key in [
-            'namespace',
-            'enable_synthetic',
-            'enable_vision',
-            'enable_mission',
-            'enable_recorder',
-            'enable_safety',
-            'enable_platform_bridge',
-            'output_root',
-            'profile_synthetic_config',
-            'camera_topic',
-            'detections_topic',
-            'field_asset_id',
-            'field_asset_path',
-            'field_asset_package_root',
-            'use_sim_time',
+            'namespace', 'enable_vision', 'enable_mission', 'enable_recorder', 'enable_safety',
+            'enable_platform_bridge', 'output_root', 'camera_topic', 'detections_topic',
+            'field_asset_id', 'field_asset_path', 'field_asset_package_root', 'use_sim_time',
         ]:
             with self.subTest(key=key):
                 self.assertEqual(payload.get(key), f'$(arg {key})')
+
+    def test_real_field_deploy_launch_forces_verified_field_asset_gate(self):
+        payload = _load_include_arg_values(ROOT / 'launch' / 'real_field_deploy.launch')
+        self.assertEqual(payload.get('enable_synthetic'), 'false')
+        self.assertEqual(payload.get('require_verified_field_asset'), 'true')
+        self.assertEqual(payload.get('required_field_asset_verification_scope'), 'field')
 
     def test_xml_files_parse(self):
         xml_files = [
@@ -578,18 +592,20 @@ class RepositoryConsistencyTest(unittest.TestCase):
             'vendor_imu_launch',
             'upstream_navigation_status_topic',
             'field_asset_path',
-            'field_deploy.launch',
+            'mowen_vendor_sidecar.launch',
         ]:
             with self.subTest(token=token):
                 self.assertIn(token, content)
 
     def test_vendor_runtime_launch_groups_vendor_includes_under_vendor_namespace(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
-        self.assertIn('<group ns="$(arg vendor_namespace)">', content)
-        self.assertIn("$(eval arg('enable_vendor_bringup') and arg('vendor_bringup_launch') != '')", content)
+        self.assertIn('launch/mowen_vendor_sidecar.launch', content)
+        self.assertIn('<arg name="vendor_namespace" value="$(arg vendor_namespace)" />', content)
 
     def test_vendor_runtime_bridge_defaults_follow_vendor_namespace_prefix(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
+        self.assertIn('launch/mowen_vendor_sidecar.launch', content)
+        sidecar = (ROOT / 'launch/mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
         for token in [
             "upstream_feedback_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/recon/platform/vendor/base_feedback_raw')",
             "upstream_odom_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/odom')",
@@ -597,7 +613,7 @@ class RepositoryConsistencyTest(unittest.TestCase):
             "upstream_command_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/cmd_vel' if arg('vendor_ns_prefix') else 'recon/platform/vendor/cmd_vel')",
         ]:
             with self.subTest(token=token):
-                self.assertIn(token, content)
+                self.assertIn(token, sidecar)
 
     def test_system_manager_requires_bridge_feedback_contract_for_readiness(self):
         payload = yaml.safe_load((ROOT / 'config/common/system_manager.yaml').read_text(encoding='utf-8'))
@@ -803,33 +819,37 @@ class RepositoryConsistencyTest(unittest.TestCase):
 
     def test_mowen_vendor_runtime_launch_aligns_namespaced_task_layer_inputs(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
-        for token in [
-            "<arg name=\"camera_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/camera/rgb/image_raw' if arg('vendor_ns_prefix') else '/camera/rgb/image_raw')\" />",
-            "<arg name=\"odom_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/odom' if arg('vendor_ns_prefix') else 'odom')\" />",
-            "<arg name=\"amcl_pose_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/amcl_pose' if arg('vendor_ns_prefix') else 'amcl_pose')\" />",
-            "<arg name=\"move_base_action_name\" default=\"$(eval arg('vendor_ns_prefix') + '/move_base' if arg('vendor_ns_prefix') else 'move_base')\" />",
-        ]:
-            with self.subTest(token=token):
-                self.assertIn(token, content)
+        self.assertIn('launch/mowen_vendor_sidecar.launch', content)
         for token in [
             '<arg name="odom_topic" value="$(arg odom_topic)" />',
             '<arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />',
             '<arg name="move_base_action_name" value="$(arg move_base_action_name)" />',
-            '<arg name="enable_platform_bridge" value="true" />',
             '<arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />',
             '<arg name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />',
             '<arg name="upstream_command_topic" value="$(arg upstream_command_topic)" />',
         ]:
             with self.subTest(forward=token):
                 self.assertIn(token, content)
+        sidecar = (ROOT / 'launch/mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
+        for token in [
+            "<arg name=\"camera_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/camera/rgb/image_raw' if arg('vendor_ns_prefix') else '/camera/rgb/image_raw')\" />",
+            "<arg name=\"odom_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/odom' if arg('vendor_ns_prefix') else 'odom')\" />",
+            "<arg name=\"amcl_pose_topic\" default=\"$(eval arg('vendor_ns_prefix') + '/amcl_pose' if arg('vendor_ns_prefix') else 'amcl_pose')\" />",
+            "<arg name=\"move_base_action_name\" default=\"$(eval arg('vendor_ns_prefix') + '/move_base' if arg('vendor_ns_prefix') else 'move_base')\" />",
+            '<arg name="enable_platform_bridge" value="true" />',
+        ]:
+            with self.subTest(token=token):
+                self.assertIn(token, sidecar)
 
 
 
 
     def test_mowen_vendor_runtime_keeps_bridge_under_managed_reference_deploy(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
-        self.assertIn('<arg name="enable_platform_bridge" value="true" />', content)
-        self.assertIn('launch/reference_field_deploy.launch', content)
+        self.assertIn('launch/mowen_vendor_sidecar.launch', content)
+        sidecar = (ROOT / 'launch/mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
+        self.assertIn('<arg name="enable_platform_bridge" value="true" />', sidecar)
+        self.assertIn('launch/reference_field_deploy.launch', sidecar)
         self.assertNotIn('<node pkg="ruikang_recon_baseline" type="platform_bridge_node.py" name="platform_bridge_node"', content)
 
     def test_reference_field_deploy_launch_uses_reference_profiles(self):
@@ -843,7 +863,7 @@ class RepositoryConsistencyTest(unittest.TestCase):
         payload = _load_include_arg_values(ROOT / 'launch/field_deploy.launch')
         self.assertEqual(payload.get('profile_vision_config'), '$(arg profile_vision_config)')
         self.assertEqual(payload.get('profile_mission_config'), '$(arg profile_mission_config)')
-        self.assertEqual(payload.get('required_field_asset_verification_scope'), 'field')
+        self.assertNotIn('required_field_asset_verification_scope', payload)
         self.assertEqual(payload.get('model_manifest_path'), '$(arg model_manifest_path)')
         content = (ROOT / 'launch/field_deploy.launch').read_text(encoding='utf-8')
         self.assertIn('config/profiles/field_deploy/vision.yaml', content)
@@ -855,15 +875,24 @@ class RepositoryConsistencyTest(unittest.TestCase):
         self.assertEqual(mission_payload.get('field_asset_id', ''), 'mowen_raicom_reference_field_verified')
         self.assertEqual(vision_payload.get('field_asset_id', ''), 'mowen_raicom_reference_field_verified')
         self.assertEqual(vision_payload.get('model_manifest_path', ''), 'config/manifests/mowen_reference_field_detector_manifest.json')
+        self.assertEqual(mission_payload.get('model_manifest_path', ''), 'config/manifests/mowen_reference_field_detector_manifest.json')
         self.assertEqual(mission_payload.get('required_field_asset_verification_scope'), 'reference')
         self.assertEqual(vision_payload.get('required_field_asset_verification_scope'), 'reference')
 
-    def test_field_deploy_profiles_require_explicit_real_field_inputs(self):
+    def test_deploy_profiles_define_navigation_backend_profile(self):
+        for rel in ['config/profiles/baseline/mission.yaml', 'config/profiles/reference_deploy/mission.yaml', 'config/profiles/field_deploy/mission.yaml']:
+            payload = yaml.safe_load((ROOT / rel).read_text(encoding='utf-8'))
+            with self.subTest(path=rel):
+                self.assertTrue(str(payload.get('navigation_backend_profile', '')).strip())
+
+    def test_field_deploy_profiles_resolve_packaged_field_release(self):
         mission_payload = yaml.safe_load((ROOT / 'config/profiles/field_deploy/mission.yaml').read_text(encoding='utf-8'))
         vision_payload = yaml.safe_load((ROOT / 'config/profiles/field_deploy/vision.yaml').read_text(encoding='utf-8'))
         self.assertEqual(mission_payload.get('field_asset_id', ''), '')
         self.assertEqual(vision_payload.get('field_asset_id', ''), '')
-        self.assertEqual(vision_payload.get('model_manifest_path', ''), '')
+        self.assertEqual(mission_payload.get('field_asset_release_manifest_path', ''), 'config/field_assets/releases/mowen_raicom_packaged_field_release.yaml')
+        self.assertEqual(vision_payload.get('field_asset_release_manifest_path', ''), 'config/field_assets/releases/mowen_raicom_packaged_field_release.yaml')
+        self.assertEqual(vision_payload.get('model_manifest_path', ''), 'config/manifests/mowen_packaged_field_detector_manifest.json')
         self.assertEqual(mission_payload.get('required_field_asset_verification_scope'), 'field')
         self.assertEqual(vision_payload.get('required_field_asset_verification_scope'), 'field')
 
@@ -924,5 +953,10 @@ class RepositoryConsistencyTest(unittest.TestCase):
         self.assertIn('endpoint_path', payload)
 
 
+
+
+    def test_vendor_feedback_adapter_is_namespaced_with_deploy_runtime(self):
+        launch_text = (ROOT / 'launch' / 'mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
+        self.assertIn('name="vendor_feedback_node" ns="$(arg namespace)"', launch_text)
 if __name__ == '__main__':
     unittest.main()

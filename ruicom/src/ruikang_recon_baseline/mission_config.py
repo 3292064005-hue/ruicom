@@ -4,14 +4,25 @@ from __future__ import annotations
 
 from typing import Dict
 
-from .common import CLASS_NAMES, ConfigurationError, require_positive_float, validate_profile_runtime_flags
+from .common import (
+    CLASS_NAMES,
+    ConfigurationError,
+    detector_manifest_satisfies_scope,
+    load_manifest,
+    load_waypoints,
+    require_positive_float,
+    validate_profile_runtime_flags,
+)
+from .deploy_contracts import validate_deploy_stage_contract
 from .field_assets import apply_field_asset_to_mission_config
+from .mission_dsl import load_task_graph_dsl
 from .navigation_contracts import (
     apply_navigation_contract_defaults,
     validate_navigation_contract_bindings,
     validate_navigation_runtime_strategy,
 )
 from .platform_adapters import apply_platform_mission_defaults, validate_platform_contract_bindings, validate_platform_runtime_strategy
+from .runtime_paths import resolve_package_relative_path
 from .vendor_runtime_contracts import (
     build_vendor_runtime_binding_report,
     load_vendor_runtime_contract,
@@ -99,6 +110,7 @@ def read_mission_config(rospy_module) -> Dict:
         'navigation_goal_transport': str(rospy_module.get_param('~navigation_goal_transport', '')).strip(),
         'navigation_status_transport': str(rospy_module.get_param('~navigation_status_transport', '')).strip(),
         'navigation_cancel_transport': str(rospy_module.get_param('~navigation_cancel_transport', '')).strip(),
+        'navigation_backend_profile': str(rospy_module.get_param('~navigation_backend_profile', '')).strip(),
         'time_source_mode': rospy_module.get_param('~time_source_mode', 'ros'),
         'classes': rospy_module.get_param('~classes', list(CLASS_NAMES)),
         'class_schema_mismatch_policy': str(rospy_module.get_param('~class_schema_mismatch_policy', 'error')).strip().lower(),
@@ -108,18 +120,32 @@ def read_mission_config(rospy_module) -> Dict:
         'preflight_failure_policy': str(rospy_module.get_param('~preflight_failure_policy', 'error')).strip().lower(),
         'embed_zone_results_in_state': bool(rospy_module.get_param('~embed_zone_results_in_state', False)),
         'profile_role': str(rospy_module.get_param('~profile_role', 'deploy')).strip().lower(),
+        'runtime_grade': str(rospy_module.get_param('~runtime_grade', 'integration')).strip().lower() or 'integration',
         'require_route_frame_regions': bool(rospy_module.get_param('~require_route_frame_regions', False)),
         'expected_frame_regions': rospy_module.get_param('~expected_frame_regions', []),
         'route': rospy_module.get_param('~route', []),
         'tasks': rospy_module.get_param('~tasks', []),
+        'task_dsl_path': str(rospy_module.get_param('~task_dsl_path', '')).strip(),
+        'task_dsl_format': str(rospy_module.get_param('~task_dsl_format', 'yaml')).strip().lower() or 'yaml',
+        'field_asset_release_manifest_path': str(rospy_module.get_param('~field_asset_release_manifest_path', '')).strip(),
         'field_asset_id': str(rospy_module.get_param('~field_asset_id', '')).strip(),
         'field_asset_path': str(rospy_module.get_param('~field_asset_path', '')).strip(),
         'field_asset_package_root': str(rospy_module.get_param('~field_asset_package_root', '')).strip(),
+        'model_manifest_path': str(rospy_module.get_param('~model_manifest_path', '')).strip(),
         'require_verified_field_asset': bool(rospy_module.get_param('~require_verified_field_asset', False)),
         'required_field_asset_verification_scope': str(rospy_module.get_param('~required_field_asset_verification_scope', 'contract')).strip().lower() or 'contract',
+        'required_field_asset_provenance': str(rospy_module.get_param('~required_field_asset_provenance', '')).strip().lower(),
         'writer_queue_size': int(rospy_module.get_param('~writer_queue_size', 512)),
         'writer_rotate_max_bytes': int(rospy_module.get_param('~writer_rotate_max_bytes', 5 * 1024 * 1024)),
         'writer_rotate_keep': int(rospy_module.get_param('~writer_rotate_keep', 3)),
+        'behavior_action_backend_type': str(rospy_module.get_param('~behavior_action_backend_type', 'disabled')).strip().lower() or 'disabled',
+        'behavior_command_topic': str(rospy_module.get_param('~behavior_command_topic', 'recon/behavior_command')).strip() or 'recon/behavior_command',
+        'behavior_feedback_topic': str(rospy_module.get_param('~behavior_feedback_topic', 'recon/behavior_feedback')).strip() or 'recon/behavior_feedback',
+        'behavior_action_timeout_sec': float(rospy_module.get_param('~behavior_action_timeout_sec', 3.0)),
+        'require_behavior_feedback': bool(rospy_module.get_param('~require_behavior_feedback', True)),
+        'behavior_action_memory_outcome_status': str(rospy_module.get_param('~behavior_action_memory_outcome_status', 'SUCCEEDED')).strip().upper() or 'SUCCEEDED',
+        'behavior_action_memory_delay_sec': float(rospy_module.get_param('~behavior_action_memory_delay_sec', 0.0)),
+        'behavior_action_memory_feedback_details': rospy_module.get_param('~behavior_action_memory_feedback_details', {}),
     }
 
     capability = apply_platform_mission_defaults(config)
@@ -180,6 +206,26 @@ def read_mission_config(rospy_module) -> Dict:
     if field_asset is not None:
         config['comparison_frame'] = str(config.get('comparison_frame', '')).strip() or field_asset.comparison_frame
         config.setdefault('health_frame_id', config['comparison_frame'])
+    if config.get('task_dsl_path'):
+        if config.get('tasks'):
+            raise ConfigurationError('mission_manager_node must not define both tasks and task_dsl_path')
+        route = load_waypoints(config.get('route', []), config.get('dwell_default_sec', 4.0))
+        config['tasks'] = load_task_graph_dsl(
+            path=str(config.get('task_dsl_path', '')).strip(),
+            route=route,
+            file_format=str(config.get('task_dsl_format', 'yaml')).strip().lower() or 'yaml',
+        )
+        config['task_graph_contract'] = {
+            'dsl_path': str(config.get('task_dsl_path', '')).strip(),
+            'dsl_format': str(config.get('task_dsl_format', 'yaml')).strip().lower() or 'yaml',
+            'task_count': len(config['tasks']),
+        }
+    else:
+        config['task_graph_contract'] = {
+            'dsl_path': '',
+            'dsl_format': str(config.get('task_dsl_format', 'yaml')).strip().lower() or 'yaml',
+            'task_count': len(config.get('tasks', []) or []),
+        }
 
     navigation_capability = apply_navigation_contract_defaults(config)
     config['navigation_contract_bindings'] = validate_navigation_contract_bindings(config, owner='mission_manager_node')
@@ -191,6 +237,12 @@ def read_mission_config(rospy_module) -> Dict:
         raise ConfigurationError('class_schema_mismatch_policy must be warn or error')
     if str(config['preflight_failure_policy']) not in ('warn', 'error'):
         raise ConfigurationError('preflight_failure_policy must be warn or error')
+    if str(config['runtime_grade']) not in ('integration', 'contract', 'reference', 'field'):
+        raise ConfigurationError('runtime_grade must be one of: integration, contract, reference, field')
+    if str(config['behavior_action_backend_type']) not in ('disabled', 'memory', 'topic'):
+        raise ConfigurationError('behavior_action_backend_type must be one of: disabled, memory, topic')
+    if bool(config['require_behavior_feedback']) and str(config['behavior_action_backend_type']) == 'topic' and not str(config['behavior_feedback_topic']).strip():
+        raise ConfigurationError('behavior_feedback_topic must not be empty when require_behavior_feedback=true')
     if str(config['capture_reduction']) not in ('median', 'max'):
         raise ConfigurationError('capture_reduction must be one of: median, max')
     if str(config['time_source_mode']).strip().lower() not in ('ros', 'wall'):
@@ -206,19 +258,62 @@ def read_mission_config(rospy_module) -> Dict:
         require_route_frame_regions=config['require_route_frame_regions'],
     )
 
+    manifest_path = resolve_package_relative_path(config.get('model_manifest_path', ''))
+    if manifest_path:
+        config['model_manifest_path'] = manifest_path
+        manifest = load_manifest(manifest_path)
+        required_manifest_scope = ''
+        if config['profile_role'] == 'deploy':
+            required_manifest_scope = str(config.get('required_field_asset_verification_scope', '')).strip().lower() or 'contract'
+            if not detector_manifest_satisfies_scope(manifest, required_scope=required_manifest_scope):
+                raise ConfigurationError(
+                    'mission detector manifest {} grade {} does not satisfy required scope {}'.format(
+                        manifest.model_id or config['model_manifest_path'],
+                        manifest.deployment_grade or 'ungraded',
+                        required_manifest_scope,
+                    )
+                )
+        config['deploy_manifest_contract'] = {
+            'path': manifest_path,
+            'model_id': str(manifest.model_id).strip(),
+            'deployment_grade': str(manifest.deployment_grade).strip(),
+            'required_scope': required_manifest_scope,
+            'scope_satisfied': bool(required_manifest_scope == '' or detector_manifest_satisfies_scope(manifest, required_scope=required_manifest_scope)),
+        }
+    else:
+        config['deploy_manifest_contract'] = {
+            'path': '',
+            'model_id': '',
+            'deployment_grade': '',
+            'required_scope': '',
+            'scope_satisfied': True,
+        }
+    config['deploy_stage_contract'] = validate_deploy_stage_contract(config, owner='mission_manager_node')
+
     if not isinstance(config['expected_frame_regions'], list):
         raise ConfigurationError('expected_frame_regions must be a list')
     config['expected_frame_regions'] = [str(item).strip() for item in config['expected_frame_regions'] if str(item).strip()]
     if not isinstance(config['tasks'], list):
         raise ConfigurationError('tasks must be a list')
-    if config['tasks'] and config['route']:
-        raise ConfigurationError('mission config must define either route or tasks, not both')
+    if config['tasks'] and config['route'] and not str(config.get('task_dsl_path', '')).strip():
+        raise ConfigurationError('mission config must define either route or tasks, not both when task_dsl_path is unset')
+    task_types = {str(item.get('task_type', '')).strip() for item in list(config['tasks'] or []) if isinstance(item, dict)}
+    config['behavior_action_contract'] = {
+        'backend_type': str(config['behavior_action_backend_type']),
+        'command_topic': str(config['behavior_command_topic']),
+        'feedback_topic': str(config['behavior_feedback_topic']),
+        'timeout_sec': float(config['behavior_action_timeout_sec']),
+        'require_feedback': bool(config['require_behavior_feedback']),
+        'task_types_requiring_backend': sorted(task_types.intersection({'hazard_avoid', 'facility_attack'})),
+    }
+    if config['behavior_action_contract']['task_types_requiring_backend'] and str(config['runtime_grade']) in ('reference', 'field') and str(config['behavior_action_backend_type']) == 'disabled':
+        raise ConfigurationError('runtime_grade {} with task-level execute/confirm steps requires behavior_action_backend_type'.format(config['runtime_grade']))
 
     for key in [
         'publish_rate_hz', 'goal_reach_tolerance_m', 'pose_timeout_sec', 'detections_timeout_sec',
         'dwell_default_sec', 'mission_timeout_sec', 'wait_for_action_server_sec',
         'navigation_status_timeout_sec', 'navigation_failure_quiesce_sec', 'tf_lookup_timeout_sec',
-        'synthetic_arrival_delay_sec', 'preflight_timeout_sec',
+        'synthetic_arrival_delay_sec', 'preflight_timeout_sec', 'behavior_action_timeout_sec',
     ]:
         config[key] = require_positive_float(key, config[key])
     if int(config['retry_limit']) < 0:

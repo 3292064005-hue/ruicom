@@ -19,3 +19,11 @@ navigation_localization_backend: amcl_pose_topic
 navigation_goal_transport: actionlib
 navigation_status_transport: actionlib
 navigation_cancel_transport: actionlib
+navigation_backend_profile: move_base_managed
+model_manifest_path: config/manifests/mowen_reference_field_detector_manifest.json
+runtime_grade: reference
+behavior_action_backend_type: topic
+require_behavior_feedback: true
+field_asset_release_manifest_path: config/field_assets/releases/mowen_raicom_reference_release.yaml
+task_dsl_path: config/task_graphs/mowen_reference_competition_tasks.yaml
+task_dsl_format: yaml

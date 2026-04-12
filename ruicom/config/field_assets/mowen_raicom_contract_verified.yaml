@@ -7,6 +7,7 @@ verification_scope: contract
 route_layout_id: "mowen_raicom_contract_route_v1"
 named_region_layout_id: "mowen_raicom_contract_regions_v1"
 calibration_bundle_id: "mowen_raicom_contract_calib_v1"
+detector_manifest_path: "config/manifests/baseline_deploy_detector_manifest.json"
 notes: "Contract-verified asset used for managed deploy, CI and lab-validation bringup. Use field_deploy with a field-scoped asset for real competition coordinates and calibration."
 map_id: "mowen_raicom_contract_map"
 camera_calibration_id: "mowen_raicom_contract_camera"

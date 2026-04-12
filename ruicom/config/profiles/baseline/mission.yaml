@@ -17,3 +17,8 @@ navigation_localization_backend: amcl_pose_topic
 navigation_goal_transport: actionlib
 navigation_status_transport: actionlib
 navigation_cancel_transport: actionlib
+navigation_backend_profile: move_base_managed
+runtime_grade: contract
+behavior_action_backend_type: disabled
+require_behavior_feedback: false
+field_asset_release_manifest_path: config/field_assets/releases/mowen_raicom_contract_release.yaml

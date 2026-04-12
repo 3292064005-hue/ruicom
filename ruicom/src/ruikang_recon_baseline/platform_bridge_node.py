@@ -8,6 +8,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatusArray
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Imu, Range
 from std_msgs.msg import Bool, String
 
 from .common import ConfigurationError, JsonCodec, SCHEMA_VERSION, require_positive_float
@@ -53,6 +54,11 @@ class PlatformBridgeNode:
         self._last_mode = str(self.config['default_control_mode']).strip() or 'UNKNOWN'
         self._last_estop = bool(self.config['default_estop'])
         self._last_nav_status_json = self.config['default_navigation_status_json']
+        self._last_ultrasonic_sec = 0.0
+        self._last_ultrasonic_range_m = 0.0
+        self._ultrasonic_hazard_active = False
+        self._last_imu_sec = 0.0
+        self._operator_event_seq = 0
         self._first_command_seen_sec = 0.0
         self._last_command_sec = 0.0
         self._last_forwarded_command_sec = 0.0
@@ -69,6 +75,7 @@ class PlatformBridgeNode:
         self.nav_status_pub = rospy.Publisher(self.config['navigation_status_topic'], String, queue_size=10, latch=True) if self.config['navigation_status_topic'] else None
         self.health_pub = rospy.Publisher(self.config['health_topic'], String, queue_size=10)
         self.health_typed_pub = rospy.Publisher(self.config['health_typed_topic'], HealthState, queue_size=10)
+        self.runtime_evidence_pub = rospy.Publisher(self.config['runtime_evidence_topic'], String, queue_size=10)
 
         self.feedback_sub = rospy.Subscriber(self.config['upstream_feedback_topic'], Bool, self._feedback_cb, queue_size=10) if self.config['upstream_feedback_topic'] else None
         self.odom_sub = rospy.Subscriber(self.config['upstream_odom_topic'], Odometry, self._odom_cb, queue_size=10) if self.config['upstream_odom_topic'] else None
@@ -76,10 +83,13 @@ class PlatformBridgeNode:
         self.estop_sub = rospy.Subscriber(self.config['upstream_estop_topic'], Bool, self._estop_cb, queue_size=10) if self.config['upstream_estop_topic'] else None
         self.nav_status_sub = rospy.Subscriber(self.config['upstream_navigation_status_topic'], GoalStatusArray, self._nav_status_cb, queue_size=10) if self.config['upstream_navigation_status_topic'] else None
         self.command_sub = rospy.Subscriber(self.config['upstream_command_topic'], Twist, self._command_cb, queue_size=10) if self.config['upstream_command_topic'] else None
+        self.ultrasonic_sub = rospy.Subscriber(self.config['upstream_ultrasonic_topic'], Range, self._ultrasonic_cb, queue_size=10) if self.config['upstream_ultrasonic_topic'] else None
+        self.imu_sub = rospy.Subscriber(self.config['upstream_imu_topic'], Imu, self._imu_cb, queue_size=10) if self.config['upstream_imu_topic'] else None
+        self.voice_command_sub = rospy.Subscriber(self.config['upstream_voice_command_topic'], String, self._voice_command_cb, queue_size=20) if self.config['upstream_voice_command_topic'] else None
+        self.ps2_command_sub = rospy.Subscriber(self.config['upstream_ps2_command_topic'], String, self._ps2_command_cb, queue_size=20) if self.config['upstream_ps2_command_topic'] else None
         self.control_command_sub = rospy.Subscriber(self.config['control_command_topic'], String, self._control_command_cb, queue_size=20) if self.config['lifecycle_managed'] else None
 
-        self.mode_pub.publish(String(data=self._last_mode))
-        self.estop_pub.publish(Bool(data=self._last_estop))
+        self._publish_mode_estop()
         if self.nav_status_pub is not None and self._last_nav_status_json:
             self.nav_status_pub.publish(String(data=self._last_nav_status_json))
         self._publish_health('ok', 'node_ready', self._summary_payload(self._current_decision()))
@@ -124,6 +134,8 @@ class PlatformBridgeNode:
             'control_mode_topic': str(rospy.get_param('~control_mode_topic', 'recon/control_mode')).strip() or 'recon/control_mode',
             'estop_topic': str(rospy.get_param('~estop_topic', 'recon/estop')).strip() or 'recon/estop',
             'navigation_status_topic': str(rospy.get_param('~navigation_status_topic', 'recon/navigation_status')).strip() or 'recon/navigation_status',
+            'runtime_evidence_topic': str(rospy.get_param('~runtime_evidence_topic', 'recon/runtime/evidence')).strip() or 'recon/runtime/evidence',
+            'runtime_grade': str(rospy.get_param('~runtime_grade', 'integration')).strip().lower() or 'integration',
             'default_control_mode': str(rospy.get_param('~default_control_mode', 'COMMANDER')).strip() or 'COMMANDER',
             'default_estop': bool(rospy.get_param('~default_estop', False)),
             'default_navigation_status_json': str(rospy.get_param('~default_navigation_status_json', '')).strip(),
@@ -148,9 +160,19 @@ class PlatformBridgeNode:
             'upstream_odom_topic_type': str(rospy.get_param('~upstream_odom_topic_type', 'nav_msgs/Odometry')).strip(),
             'upstream_navigation_status_topic_type': str(rospy.get_param('~upstream_navigation_status_topic_type', 'actionlib_msgs/GoalStatusArray')).strip(),
             'upstream_command_topic_type': str(rospy.get_param('~upstream_command_topic_type', 'geometry_msgs/Twist')).strip(),
+            'upstream_ultrasonic_topic': str(rospy.get_param('~upstream_ultrasonic_topic', '')).strip(),
+            'upstream_imu_topic': str(rospy.get_param('~upstream_imu_topic', '')).strip(),
+            'upstream_voice_command_topic': str(rospy.get_param('~upstream_voice_command_topic', '')).strip(),
+            'upstream_ps2_command_topic': str(rospy.get_param('~upstream_ps2_command_topic', '')).strip(),
+            'ultrasonic_min_clearance_m': float(rospy.get_param('~ultrasonic_min_clearance_m', 0.25)),
+            'imu_timeout_sec': float(rospy.get_param('~imu_timeout_sec', 1.5)),
         }
         config['publish_rate_hz'] = require_positive_float('publish_rate_hz', config['publish_rate_hz'])
         config['output_feedback_timeout_sec'] = require_positive_float('output_feedback_timeout_sec', config['output_feedback_timeout_sec'])
+        config['ultrasonic_min_clearance_m'] = require_positive_float('ultrasonic_min_clearance_m', config['ultrasonic_min_clearance_m'])
+        config['imu_timeout_sec'] = require_positive_float('imu_timeout_sec', config['imu_timeout_sec'])
+        if str(config['runtime_grade']) not in ('integration', 'contract', 'reference', 'field'):
+            raise ConfigurationError('runtime_grade must be one of: integration, contract, reference, field')
         capability = apply_platform_safety_defaults(config)
         if not str(config.get('safety_output_topic', '')).strip():
             config['safety_output_topic'] = str(capability.safety_defaults.get('output_topic', 'cmd_vel')).strip() or 'cmd_vel'
@@ -210,13 +232,73 @@ class PlatformBridgeNode:
     def _odom_cb(self, _msg: Odometry) -> None:
         self._last_odom_sec = rospy.get_time()
 
+    def _emit_runtime_event(self, event_type: str, details: dict | None = None) -> None:
+        self._operator_event_seq += 1
+        payload = {
+            'stamp': rospy.get_time(),
+            'schema_version': SCHEMA_VERSION,
+            'event_type': str(event_type).strip().lower(),
+            'event_seq': int(self._operator_event_seq),
+            'details': dict(details or {}),
+        }
+        self.runtime_evidence_pub.publish(String(data=JsonCodec.dumps(payload)))
+
+    def _publish_mode_estop(self) -> None:
+        effective_estop = bool(self._last_estop or self._ultrasonic_hazard_active)
+        self.mode_pub.publish(String(data=self._last_mode))
+        self.estop_pub.publish(Bool(data=effective_estop))
+
+    def _apply_operator_command(self, source: str, command: str) -> None:
+        normalized = str(command).strip().upper()
+        if not normalized:
+            return
+        previous_mode = self._last_mode
+        previous_estop = bool(self._last_estop or self._ultrasonic_hazard_active)
+        applied = {'source': source, 'raw_command': command, 'previous_mode': previous_mode, 'previous_estop': previous_estop}
+        if normalized in ('COMMANDER', 'HANDLE', 'VOICE', 'AUTO'):
+            self._last_mode = normalized
+            applied['applied_control_mode'] = normalized
+        elif normalized in ('ESTOP_ON', 'ESTOP', 'STOP'):
+            self._last_estop = True
+            applied['applied_estop'] = True
+        elif normalized in ('ESTOP_OFF', 'RESUME', 'CLEAR_ESTOP'):
+            self._last_estop = False
+            applied['applied_estop'] = False
+        else:
+            self._emit_runtime_event('operator_command_ignored', {'source': source, 'raw_command': command})
+            return
+        self._publish_mode_estop()
+        self._emit_runtime_event('manual_command', applied)
+
     def _mode_cb(self, msg: String) -> None:
         self._last_mode = str(msg.data).strip() or self._last_mode
-        self.mode_pub.publish(String(data=self._last_mode))
+        self._publish_mode_estop()
 
     def _estop_cb(self, msg: Bool) -> None:
         self._last_estop = bool(msg.data)
-        self.estop_pub.publish(Bool(data=self._last_estop))
+        self._publish_mode_estop()
+
+    def _ultrasonic_cb(self, msg: Range) -> None:
+        self._last_ultrasonic_sec = rospy.get_time()
+        self._last_ultrasonic_range_m = float(msg.range)
+        was_active = bool(self._ultrasonic_hazard_active)
+        self._ultrasonic_hazard_active = float(msg.range) > 0.0 and float(msg.range) <= float(self.config['ultrasonic_min_clearance_m'])
+        if self._ultrasonic_hazard_active != was_active:
+            self._publish_mode_estop()
+            self._emit_runtime_event('ultrasonic_hazard_changed', {
+                'range_m': float(msg.range),
+                'threshold_m': float(self.config['ultrasonic_min_clearance_m']),
+                'hazard_active': bool(self._ultrasonic_hazard_active),
+            })
+
+    def _imu_cb(self, _msg: Imu) -> None:
+        self._last_imu_sec = rospy.get_time()
+
+    def _voice_command_cb(self, msg: String) -> None:
+        self._apply_operator_command('voice', msg.data)
+
+    def _ps2_command_cb(self, msg: String) -> None:
+        self._apply_operator_command('ps2', msg.data)
 
     def _nav_status_cb(self, msg: GoalStatusArray) -> None:
         payload = {
@@ -376,8 +458,17 @@ class PlatformBridgeNode:
             'command_flow_contract': dict(self.config['command_flow_contract']),
             'command_flow_contract_satisfied': bool(self.config['command_flow_contract'].get('satisfied', True)),
             'control_mode': self._last_mode,
-            'estop_active': self._last_estop,
+            'estop_active': bool(self._last_estop or self._ultrasonic_hazard_active),
+            'runtime_grade': self.config['runtime_grade'],
             'navigation_status_topic': self.config['navigation_status_topic'],
+            'upstream_ultrasonic_topic': self.config['upstream_ultrasonic_topic'],
+            'upstream_imu_topic': self.config['upstream_imu_topic'],
+            'upstream_voice_command_topic': self.config['upstream_voice_command_topic'],
+            'upstream_ps2_command_topic': self.config['upstream_ps2_command_topic'],
+            'ultrasonic_range_m': float(self._last_ultrasonic_range_m),
+            'ultrasonic_hazard_active': bool(self._ultrasonic_hazard_active),
+            'ultrasonic_fresh': bool(self.config['upstream_ultrasonic_topic']) and (rospy.get_time() - self._last_ultrasonic_sec) <= self.config['output_feedback_timeout_sec'],
+            'imu_fresh': bool(self.config['upstream_imu_topic']) and (rospy.get_time() - self._last_imu_sec) <= self.config['imu_timeout_sec'],
             'feedback_contract_satisfied': bool(decision.output_feedback) or not self.config['require_output_feedback'],
             'vendor_runtime_mode': self.config['vendor_runtime_mode'],
             'vendor_workspace_ros_distro': self.config['vendor_workspace_ros_distro'],
@@ -409,6 +500,7 @@ class PlatformBridgeNode:
             'details': dict(details or {}),
         }
         payload['details'].setdefault('lifecycle_managed', bool(self.config['lifecycle_managed']))
+        payload['details'].setdefault('runtime_grade', str(self.config.get('runtime_grade', 'integration')).strip())
         payload['details'].setdefault('runtime_state', self.runtime.state)
         payload['details'].setdefault('processing_allowed', bool(self.runtime.processing_allowed))
         runtime_probe = self._platform_runtime_probe()
@@ -437,8 +529,7 @@ class PlatformBridgeNode:
             decision = self._current_decision()
             summary = self._summary_payload(decision)
             self.feedback_pub.publish(Bool(data=decision.output_feedback))
-            self.mode_pub.publish(String(data=self._last_mode))
-            self.estop_pub.publish(Bool(data=self._last_estop))
+            self._publish_mode_estop()
             if self.nav_status_pub is not None and self._last_nav_status_json:
                 self.nav_status_pub.publish(String(data=self._last_nav_status_json))
             self.summary_pub.publish(String(data=JsonCodec.dumps(summary)))
@@ -457,6 +548,12 @@ class PlatformBridgeNode:
             elif summary['require_command_traffic_for_readiness'] and not summary['command_traffic_seen']:
                 health_status = 'warn'
                 health_message = 'command_traffic_unseen'
+            elif summary['ultrasonic_hazard_active']:
+                health_status = 'warn'
+                health_message = 'ultrasonic_hazard_active'
+            elif self.config['upstream_imu_topic'] and not summary['imu_fresh']:
+                health_status = 'warn'
+                health_message = 'imu_signal_stale'
             health_signature = (
                 health_status,
                 health_message,

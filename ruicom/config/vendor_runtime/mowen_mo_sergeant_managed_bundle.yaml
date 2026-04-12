@@ -1,0 +1,26 @@
+bundle_id: mowen_mo_sergeant_managed_bundle
+bundle_version: 1.0.0
+platform_adapter_type: mowen_mo_sergeant
+vendor_workspace_name: newznzc_ws
+vendor_runtime_mode: isolated_legacy_workspace
+required_ros_distro: melodic
+required_python_major: 2
+source_setup_preference: devel_first
+managed_entrypoints:
+  repo_sidecar_launch: launch/mowen_vendor_sidecar.launch
+  repo_sidecar_wrapper: tools/run_mowen_vendor_sidecar.sh
+  repo_managed_runtime_wrapper: tools/run_managed_vendor_runtime.py
+  repo_vendor_feedback_adapter: scripts/vendor_feedback_node.py
+vendor_entrypoints:
+  chassis_bridge: car_bringup/scripts/newt.py
+  navigation_launch: nav_demo/launch/nav777.launch
+  camera_launch: OrbbecSDK_ROS/dabai_dcw2.launch
+  lidar_launch: lslidar_driver/launch/lslidar_serial.launch
+  imu_launch: wit_ros_imu/launch/wit_imu.launch
+startup_sequence:
+  - chassis_bridge
+  - lidar_launch
+  - imu_launch
+  - camera_launch
+  - navigation_launch
+  - repo_sidecar_launch

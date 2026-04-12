@@ -51,6 +51,8 @@ catkin_install_python(PROGRAMS
   scripts/fake_base_feedback_publisher.py
   scripts/fake_twist_publisher.py
   scripts/platform_bridge_node.py
+  scripts/vendor_feedback_node.py
+  scripts/vendor_sidecar_contract_node.py
   tests/demo_pipeline_smoke.py
   tests/baseline_smoke.py
   tests/baseline_contract_smoke.py

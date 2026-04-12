@@ -52,7 +52,11 @@ def validate_submission_contract(payload: Mapping[str, Any]) -> Dict[str, Any]:
     if adapter_type not in VALID_SUBMISSION_ADAPTER_TYPES:
         raise ConfigurationError('submission adapter_type must be one of {}'.format(', '.join(VALID_SUBMISSION_ADAPTER_TYPES)))
     contract_path = str(payload.get('_contract_path', '')).strip()
+    contract_id = str(payload.get('contract_id', '')).strip()
+    if not contract_id:
+        raise ConfigurationError('official report submission contract requires non-empty contract_id')
     normalized: Dict[str, Any] = {
+        'contract_id': contract_id,
         'adapter_type': adapter_type,
         'contract_path': contract_path,
         'receipt_path': str(payload.get('receipt_path', '')).strip(),
@@ -115,6 +119,7 @@ class FileDropSubmissionAdapter(OfficialReportSubmissionAdapter):
         atomic_write_json(endpoint_path, dict(report))
         payload_bytes = _canonical_json_bytes(report)
         return {
+            'contract_id': str(self.contract.get('contract_id', '')).strip(),
             'adapter_type': 'file_drop',
             'status': 'submitted',
             'submitted_at_wall': time.time(),
@@ -164,6 +169,7 @@ class HttpPostSubmissionAdapter(OfficialReportSubmissionAdapter):
         except Exception:
             response_payload = {'raw_text': response_text}
         return {
+            'contract_id': str(self.contract.get('contract_id', '')).strip(),
             'adapter_type': 'http_post',
             'status': 'submitted',
             'submitted_at_wall': time.time(),
@@ -202,6 +208,7 @@ class CommandExecSubmissionAdapter(OfficialReportSubmissionAdapter):
         if completed.returncode != 0:
             raise ConfigurationError('command_exec submission failed rc={} stderr={}'.format(completed.returncode, stderr_text))
         return {
+            'contract_id': str(self.contract.get('contract_id', '')).strip(),
             'adapter_type': 'command_exec',
             'status': 'submitted',
             'submitted_at_wall': time.time(),

@@ -1,0 +1,8 @@
+release_id: mowen_raicom_reference_release
+release_version: 1.0.0
+verification_scope: reference
+field_asset_id: mowen_raicom_reference_field_verified
+detector_manifest_path: config/manifests/mowen_reference_field_detector_manifest.json
+approved_at_utc: '2026-04-11T00:00:00Z'
+reviewer_id: repo_reference_gate
+notes: Repository-managed reference dry-run release binding the reference field asset to the ONNX detector manifest contract.

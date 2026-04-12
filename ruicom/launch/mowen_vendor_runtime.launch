@@ -10,7 +10,19 @@
   <arg name="field_asset_path" default="" />
   <arg name="field_asset_package_root" default="" />
   <arg name="model_manifest_path" default="" />
+  <arg name="onnx_model_path" default="" />
   <arg name="vendor_runtime_contract_path" default="$(find ruikang_recon_baseline)/config/vendor_runtime/mowen_mo_sergeant_vendor_contract.yaml" />
+  <arg name="vendor_bundle_manifest_path" default="" />
+  <arg name="vendor_bundle_lock_id" default="" />
+  <arg name="vendor_bundle_lock_version" default="" />
+
+  <arg name="vendor_execution_feedback_topic" default="" />
+  <arg name="native_feedback_source_declared" default="false" />
+  <arg name="require_explicit_feedback_source" default="true" />
+  <arg name="vendor_feedback_command_topic" default="$(arg upstream_command_topic)" />
+  <arg name="vendor_feedback_timeout_sec" default="0.6" />
+  <arg name="vendor_feedback_command_timeout_sec" default="1.0" />
+  <arg name="require_recent_vendor_command_for_feedback" default="true" />
 
   <arg name="vendor_bringup_launch" default="" />
   <arg name="vendor_navigation_launch" default="" />
@@ -34,34 +46,48 @@
   <arg name="upstream_navigation_status_topic" default="$(eval arg('vendor_ns_prefix') + '/move_base/status')" />
   <arg name="upstream_command_topic" default="$(eval arg('vendor_ns_prefix') + '/cmd_vel' if arg('vendor_ns_prefix') else 'recon/platform/vendor/cmd_vel')" />
 
-  <group ns="$(arg vendor_namespace)">
-    <include if="$(eval arg('enable_vendor_bringup') and arg('vendor_bringup_launch') != '')" file="$(arg vendor_bringup_launch)" />
-    <include if="$(eval arg('enable_vendor_navigation') and arg('vendor_navigation_launch') != '')" file="$(arg vendor_navigation_launch)" />
-    <include if="$(eval arg('enable_vendor_camera') and arg('vendor_camera_launch') != '')" file="$(arg vendor_camera_launch)" />
-    <include if="$(eval arg('enable_vendor_lidar') and arg('vendor_lidar_launch') != '')" file="$(arg vendor_lidar_launch)" />
-    <include if="$(eval arg('enable_vendor_imu') and arg('vendor_imu_launch') != '')" file="$(arg vendor_imu_launch)" />
-  </group>
-
-  <include file="$(find ruikang_recon_baseline)/launch/reference_field_deploy.launch">
+  <include file="$(find ruikang_recon_baseline)/launch/mowen_vendor_sidecar.launch">
     <arg name="namespace" value="$(arg namespace)" />
+    <arg name="vendor_namespace" value="$(arg vendor_namespace)" />
+    <arg name="vendor_ns_prefix" value="$(arg vendor_ns_prefix)" />
     <arg name="output_root" value="$(arg output_root)" />
-    <arg name="camera_topic" value="$(arg camera_topic)" />
     <arg name="detections_topic" value="$(arg detections_topic)" />
-    <arg name="odom_topic" value="$(arg odom_topic)" />
-    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
-    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
     <arg name="field_asset_id" value="$(arg field_asset_id)" />
     <arg name="field_asset_path" value="$(arg field_asset_path)" />
     <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
-    <arg name="use_sim_time" value="$(arg use_sim_time)" />
     <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
     <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+    <arg name="vendor_bundle_manifest_path" value="$(arg vendor_bundle_manifest_path)" />
+    <arg name="vendor_bundle_lock_id" value="$(arg vendor_bundle_lock_id)" />
+    <arg name="vendor_bundle_lock_version" value="$(arg vendor_bundle_lock_version)" />
+    <arg name="vendor_execution_feedback_topic" value="$(arg vendor_execution_feedback_topic)" />
+    <arg name="native_feedback_source_declared" value="$(arg native_feedback_source_declared)" />
+    <arg name="require_explicit_feedback_source" value="$(arg require_explicit_feedback_source)" />
+    <arg name="vendor_feedback_command_topic" value="$(arg vendor_feedback_command_topic)" />
+    <arg name="vendor_feedback_timeout_sec" value="$(arg vendor_feedback_timeout_sec)" />
+    <arg name="vendor_feedback_command_timeout_sec" value="$(arg vendor_feedback_command_timeout_sec)" />
+    <arg name="require_recent_vendor_command_for_feedback" value="$(arg require_recent_vendor_command_for_feedback)" />
+    <arg name="vendor_bringup_launch" value="$(arg vendor_bringup_launch)" />
+    <arg name="vendor_navigation_launch" value="$(arg vendor_navigation_launch)" />
+    <arg name="vendor_camera_launch" value="$(arg vendor_camera_launch)" />
+    <arg name="vendor_lidar_launch" value="$(arg vendor_lidar_launch)" />
+    <arg name="vendor_imu_launch" value="$(arg vendor_imu_launch)" />
+    <arg name="enable_vendor_bringup" value="$(arg enable_vendor_bringup)" />
+    <arg name="enable_vendor_navigation" value="$(arg enable_vendor_navigation)" />
+    <arg name="enable_vendor_camera" value="$(arg enable_vendor_camera)" />
+    <arg name="enable_vendor_lidar" value="$(arg enable_vendor_lidar)" />
+    <arg name="enable_vendor_imu" value="$(arg enable_vendor_imu)" />
     <arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
     <arg name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />
     <arg name="upstream_control_mode_topic" value="$(arg upstream_control_mode_topic)" />
     <arg name="upstream_estop_topic" value="$(arg upstream_estop_topic)" />
     <arg name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />
     <arg name="upstream_command_topic" value="$(arg upstream_command_topic)" />
-    <arg name="enable_platform_bridge" value="true" />
   </include>
 </launch>

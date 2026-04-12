@@ -5,11 +5,11 @@
     "enemy",
     "hostage"
   ],
-  "parser_type": "color_blob_contract",
+  "parser_type": "yolo_v5_like",
   "confidence_threshold": 0.35,
   "score_threshold": 0.25,
   "nms_threshold": 0.45,
-  "detector_type": "color_blob",
+  "detector_type": "onnx",
   "deployment_grade": "reference_verified",
-  "model_id": "mowen_reference_field_color_blob_v1"
+  "model_id": "mowen_reference_field_onnx_v1"
 }

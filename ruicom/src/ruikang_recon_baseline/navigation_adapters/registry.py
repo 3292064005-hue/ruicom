@@ -27,6 +27,7 @@ class NavigationAdapterCapability:
     controller_interface: str = 'goal_dispatch'
     recovery_interface: str = 'executor_policy'
     localization_interface: str = 'external_pose_source'
+    backend_profile: str = 'generic_goal_dispatch'
     goal_transport: str = 'unknown'
     status_transport: str = 'unknown'
     cancel_transport: str = 'none'
@@ -63,6 +64,7 @@ class NavigationAdapterRegistry:
             'controller_interface': capability.controller_interface,
             'recovery_interface': capability.recovery_interface,
             'localization_interface': capability.localization_interface,
+            'backend_profile': capability.backend_profile,
             'goal_transport': capability.goal_transport,
             'status_transport': capability.status_transport,
             'cancel_transport': capability.cancel_transport,
@@ -143,6 +145,7 @@ def _build_capabilities(
             controller_interface='move_base_local_controller',
             recovery_interface='executor_policy',
             localization_interface='pose_source_external',
+            backend_profile='move_base_managed',
             goal_transport='actionlib',
             status_transport='actionlib',
             cancel_transport='actionlib',
@@ -158,6 +161,7 @@ def _build_capabilities(
             controller_interface='external_controller_stack',
             recovery_interface='executor_policy',
             localization_interface='pose_evaluator',
+            backend_profile='topic_pose_evaluator',
             goal_transport='topic',
             status_transport='internal_pose_evaluator',
             cancel_transport='none',
@@ -173,6 +177,7 @@ def _build_capabilities(
             controller_interface='external_controller_stack',
             recovery_interface='external_status_plus_executor_policy',
             localization_interface='pose_source_external',
+            backend_profile='topic_status_bridge',
             goal_transport='topic',
             status_transport='topic',
             cancel_transport='topic' if bool(str(config.get('navigation_cancel_topic', '')).strip()) else 'none',

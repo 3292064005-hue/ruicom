@@ -22,6 +22,7 @@ class SubmissionContractTests(unittest.TestCase):
             endpoint_path = Path(tmpdir) / 'judge' / 'official_report.json'
             report_path = Path(tmpdir) / 'local_report.json'
             contract_path.write_text(json.dumps({
+                'contract_id': 'unit.file_drop.v1',
                 'adapter_type': 'file_drop',
                 'endpoint_path': str(endpoint_path),
                 'timeout_sec': 5.0,

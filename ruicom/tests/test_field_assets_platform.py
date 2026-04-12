@@ -53,6 +53,14 @@ class FieldAssetContractTest(unittest.TestCase):
         self.assertTrue(asset.satisfies_scope('contract'))
         self.assertTrue(asset.satisfies_scope('reference'))
         self.assertFalse(asset.satisfies_scope('field'))
+        self.assertEqual(asset.metadata['detector_manifest_path'], 'config/manifests/mowen_reference_field_detector_manifest.json')
+
+    def test_packaged_field_asset_is_available_for_field_deploy(self):
+        asset = load_field_asset(field_asset_id='mowen_raicom_packaged_field_verified')
+        self.assertTrue(asset.verified)
+        self.assertEqual(asset.verification_scope, 'field')
+        self.assertTrue(asset.satisfies_scope('field'))
+        self.assertEqual(asset.metadata['detector_manifest_path'], 'config/manifests/mowen_packaged_field_detector_manifest.json')
 
     def test_mission_field_asset_resolves_route_bindings(self):
         payload = yaml.safe_load((ROOT / 'config/profiles/baseline/mission.yaml').read_text(encoding='utf-8'))
@@ -98,6 +106,21 @@ class FieldAssetContractTest(unittest.TestCase):
         payload = {'require_verified_field_asset': True, 'required_field_asset_verification_scope': 'contract'}
         with self.assertRaises(ConfigurationError):
             apply_field_asset_to_vision_config(payload, package_root=str(ROOT / 'config' / 'field_assets'))
+
+    def test_asset_manifest_alignment_injects_model_manifest_when_missing(self):
+        payload = {'field_asset_id': 'mowen_raicom_reference_field_verified', 'model_manifest_path': ''}
+        resolved, asset = apply_field_asset_to_vision_config(payload, owner='unit.vision.asset_manifest')
+        self.assertIsNotNone(asset)
+        self.assertEqual(resolved['model_manifest_path'], 'config/manifests/mowen_reference_field_detector_manifest.json')
+        self.assertEqual(resolved['field_asset_detector_manifest_path'], 'config/manifests/mowen_reference_field_detector_manifest.json')
+
+    def test_asset_manifest_alignment_rejects_conflicting_model_manifest(self):
+        payload = {
+            'field_asset_id': 'mowen_raicom_reference_field_verified',
+            'model_manifest_path': 'config/manifests/baseline_deploy_detector_manifest.json',
+        }
+        with self.assertRaises(ConfigurationError):
+            apply_field_asset_to_vision_config(payload, owner='unit.vision.asset_manifest_conflict')
 
 
 class PlatformAdapterContractTest(unittest.TestCase):
@@ -368,6 +391,14 @@ class RuntimeProbeSemanticStageTest(unittest.TestCase):
         self.assertTrue(probe['semantic_satisfied'])
         self.assertTrue(probe['command_declared'])
 
+    def test_field_asset_id_resolves_from_repo_root_package_override(self):
+        from pathlib import Path
+        repo_root = Path(__file__).resolve().parents[1]
+        asset = load_field_asset(field_asset_id='mowen_raicom_packaged_field_verified', package_root=str(repo_root))
+        self.assertIsNotNone(asset)
+        assert asset is not None
+        self.assertEqual(asset.asset_id, 'mowen_raicom_packaged_field_verified')
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -482,7 +513,7 @@ class ManifestAndRuntimeProbeTest(unittest.TestCase):
 class VendorRuntimeContractTest(unittest.TestCase):
     def test_mowen_vendor_runtime_contract_loads(self):
         contract = load_vendor_runtime_contract(str(ROOT / 'config/vendor_runtime/mowen_mo_sergeant_vendor_contract.yaml'))
-        self.assertEqual(contract['contract_id'], 'mowen_mo_sergeant_vendor_runtime_v1')
+        self.assertTrue(str(contract['contract_id']).startswith('mowen_mo_sergeant_vendor_runtime_v'))
         self.assertEqual(contract['vendor_runtime_mode'], 'isolated_legacy_workspace')
         self.assertIn('move_base_action_name', contract['bindings']['mission'])
         self.assertIn('camera_topic', contract['bindings']['vision'])

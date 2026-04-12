@@ -54,6 +54,8 @@ writer_rotate_max_bytes: 5242880
 writer_rotate_keep: 3
 route: []
 tasks: []
+task_dsl_path: ''
+task_dsl_format: yaml
 profile_role: integration
 require_route_frame_regions: false
 expected_frame_regions: []
@@ -61,6 +63,7 @@ platform_adapter_type: generic_ros_nav
 field_asset_id: ''
 field_asset_path: ''
 field_asset_package_root: ''
+field_asset_release_manifest_path: ''
 require_verified_field_asset: false
 required_field_asset_verification_scope: contract
 navigation_planner_backend: move_base_global_planner
@@ -70,3 +73,12 @@ navigation_localization_backend: amcl_pose_topic
 navigation_goal_transport: actionlib
 navigation_status_transport: actionlib
 navigation_cancel_transport: actionlib
+runtime_grade: integration
+behavior_action_backend_type: disabled
+behavior_command_topic: recon/behavior_command
+behavior_feedback_topic: recon/behavior_feedback
+behavior_action_timeout_sec: 3.0
+require_behavior_feedback: false
+behavior_action_memory_outcome_status: SUCCEEDED
+behavior_action_memory_delay_sec: 0.0
+behavior_action_memory_feedback_details: {}

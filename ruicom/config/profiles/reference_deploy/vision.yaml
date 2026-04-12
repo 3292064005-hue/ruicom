@@ -12,3 +12,7 @@ require_verified_field_asset: true
 required_field_asset_verification_scope: reference
 require_detector_manifest_in_deploy: true
 model_manifest_path: config/manifests/mowen_reference_field_detector_manifest.json
+field_asset_release_manifest_path: config/field_assets/releases/mowen_raicom_reference_release.yaml
+detector_type: onnx
+onnx_model_path_env: RUIKANG_REFERENCE_ONNX_MODEL
+allowed_deploy_detector_types: [onnx]

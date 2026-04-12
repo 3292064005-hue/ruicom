@@ -1,0 +1,31 @@
+dsl_version: 1
+nodes:
+  - id: field_recon_zone_a
+    type: recon_zone
+    waypoint_ref: zone_a
+    transitions: {success: field_transit_zone_b, failure: field_finish_mission}
+  - id: field_transit_zone_b
+    type: transit
+    waypoint_ref: zone_b
+    transitions: {success: field_hazard_zone_c, failure: field_finish_mission}
+  - id: field_hazard_zone_c
+    type: hazard_avoid
+    waypoint_ref: zone_c
+    metadata:
+      hazard_id: field_hazard_zone_c
+      hazard_type: anti_tank_cone
+      avoidance_strategy: navigation_detour
+    transitions: {success: field_facility_zone_d, failure: field_finish_mission}
+  - id: field_facility_zone_d
+    type: facility_attack
+    waypoint_ref: zone_d
+    metadata:
+      attack_mode: command_confirmed
+      target_facility_id: enemy_facility_d
+      target_facility_type: enemy_secret_facility
+      confirmation_classes: [enemy]
+      required_detection_count: 1
+    transitions: {success: field_finish_mission, failure: field_finish_mission}
+  - id: field_finish_mission
+    type: finish
+    waypoint_ref: zone_d

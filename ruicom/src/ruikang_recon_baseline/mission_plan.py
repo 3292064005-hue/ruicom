@@ -78,8 +78,25 @@ def _validate_task_metadata(task_type: str, metadata: Mapping[str, Any], *, owne
         normalized.setdefault('hazard_id', '')
         normalized.setdefault('hazard_type', 'anti_tank_cone')
         normalized.setdefault('avoidance_strategy', 'navigation_detour')
+        normalized.setdefault('hazard_region', '')
+        confirmation_classes = normalized.get('confirmation_classes', [])
+        if confirmation_classes in (None, ''):
+            confirmation_classes = []
+        if not isinstance(confirmation_classes, (list, tuple)):
+            raise ConfigurationError('{} confirmation_classes must be a sequence'.format(owner))
+        normalized['confirmation_classes'] = [str(item).strip() for item in confirmation_classes if str(item).strip()]
+        try:
+            normalized['allowed_detection_count'] = max(0, int(normalized.get('allowed_detection_count', 0) or 0))
+        except (TypeError, ValueError) as exc:
+            raise ConfigurationError('{} allowed_detection_count is invalid: {}'.format(owner, exc))
+        try:
+            normalized['required_observation_frames'] = max(1, int(normalized.get('required_observation_frames', 1) or 1))
+        except (TypeError, ValueError) as exc:
+            raise ConfigurationError('{} required_observation_frames is invalid: {}'.format(owner, exc))
     elif execution_type == 'facility_attack':
         normalized.setdefault('attack_mode', 'report_only')
+        if normalized['attack_mode'] not in ('report_only', 'detection_confirmed', 'command_confirmed'):
+            raise ConfigurationError('{} attack_mode must be report_only, detection_confirmed or command_confirmed'.format(owner))
         confirmation_classes = normalized.get('confirmation_classes', [])
         if confirmation_classes in (None, ''):
             confirmation_classes = []
@@ -88,7 +105,7 @@ def _validate_task_metadata(task_type: str, metadata: Mapping[str, Any], *, owne
         normalized['confirmation_classes'] = [str(item).strip() for item in confirmation_classes if str(item).strip()]
         required_detection_count = normalized.get('required_detection_count', 1)
         try:
-            normalized['required_detection_count'] = max(1, int(required_detection_count))
+            normalized['required_detection_count'] = max(0, int(required_detection_count))
         except (TypeError, ValueError) as exc:
             raise ConfigurationError('{} required_detection_count is invalid: {}'.format(owner, exc))
         normalized.setdefault('target_facility_id', '')

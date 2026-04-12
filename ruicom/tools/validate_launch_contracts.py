@@ -35,6 +35,30 @@ def _extract_package_paths(text: str) -> set[str]:
     return {item for item in matches if item and not item.startswith('msg/')}  # message names are not files
 
 
+def _collect_declared_args(root: ET.Element) -> set[str]:
+    declared: set[str] = set()
+
+    def visit(element: ET.Element, *, in_include: bool = False) -> None:
+        current_in_include = in_include or element.tag == 'include'
+        if element.tag == 'arg' and not in_include:
+            name = str(element.attrib.get('name', '')).strip()
+            if name:
+                declared.add(name)
+        for child in element:
+            visit(child, in_include=current_in_include)
+
+    visit(root)
+    return declared
+
+
+def _resolve_package_launch_path(file_attr: str) -> Path | None:
+    match = PACKAGE_FIND_PATTERN.search(file_attr)
+    if not match:
+        return None
+    resolved = ROOT / match.group(1)
+    return resolved if resolved.exists() else None
+
+
 def _validate_xml_file(path: Path) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding='utf-8')
@@ -48,6 +72,26 @@ def _validate_xml_file(path: Path) -> list[str]:
         if relative.startswith('config/') or relative.startswith('launch/') or relative.startswith('tests/'):
             if not resolved.exists():
                 errors.append(f'{path.relative_to(ROOT)}: missing package-relative path {relative}')
+
+    declared_args_cache: dict[Path, set[str]] = {}
+    for include in root.iter('include'):
+        target = _resolve_package_launch_path(str(include.attrib.get('file', '')).strip())
+        if target is None:
+            continue
+        if target not in declared_args_cache:
+            try:
+                include_root = ET.fromstring(target.read_text(encoding='utf-8'))
+            except ET.ParseError as exc:
+                errors.append(f'{path.relative_to(ROOT)}: included file {target.relative_to(ROOT)} has XML parse error: {exc}')
+                continue
+            declared_args_cache[target] = _collect_declared_args(include_root)
+        declared_args = declared_args_cache[target]
+        for arg in include.findall('arg'):
+            name = str(arg.attrib.get('name', '')).strip()
+            if name and name not in declared_args:
+                errors.append(
+                    f'{path.relative_to(ROOT)}: include {target.relative_to(ROOT)} passes undeclared arg {name}'
+                )
 
     for node in root.iter('node'):
         pkg = str(node.attrib.get('pkg', '')).strip()

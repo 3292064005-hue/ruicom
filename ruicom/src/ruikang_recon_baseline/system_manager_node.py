@@ -77,6 +77,7 @@ class SystemManagerNode:
             'publish_rate_hz': float(rospy.get_param('~publish_rate_hz', 5.0)),
             'auto_activate': bool(rospy.get_param('~auto_activate', True)),
             'time_source_mode': str(rospy.get_param('~time_source_mode', 'ros')).strip().lower(),
+            'runtime_grade': str(rospy.get_param('~runtime_grade', 'integration')).strip().lower() or 'integration',
             'runtime_evidence_topic': str(rospy.get_param('~runtime_evidence_topic', 'recon/runtime/evidence')).strip() or 'recon/runtime/evidence',
             'control_mode_topic': str(rospy.get_param('~control_mode_topic', 'recon/control_mode')).strip() or 'recon/control_mode',
             'estop_topic': str(rospy.get_param('~estop_topic', 'recon/estop')).strip() or 'recon/estop',
@@ -119,6 +120,7 @@ class SystemManagerNode:
             'schema_version': SCHEMA_VERSION,
             'details': details or {},
         }
+        payload['details'].setdefault('runtime_grade', self.config['runtime_grade'])
         self.health_pub.publish(String(data=JsonCodec.dumps(payload)))
         typed = HealthState()
         typed.header.stamp = self.clock.now_ros_time()
@@ -141,6 +143,7 @@ class SystemManagerNode:
             'schema_version': SCHEMA_VERSION,
             'details': details or {},
         }
+        payload['details'].setdefault('runtime_grade', self.config['runtime_grade'])
         self.state_pub.publish(String(data=JsonCodec.dumps(payload)))
         evidence = {
             'stamp': payload['stamp'],
@@ -163,6 +166,7 @@ class SystemManagerNode:
             },
             'details': dict(details or {}),
         }
+        evidence['details'].setdefault('runtime_grade', self.config['runtime_grade'])
         self.evidence_pub.publish(String(data=JsonCodec.dumps(evidence)))
         self.last_published_state = payload['state']
         if command:

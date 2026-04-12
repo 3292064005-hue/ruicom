@@ -16,8 +16,10 @@
 - **platform adapter 显式化**：新增 `config/common/platform.yaml` 与 `src/ruikang_recon_baseline/platform_adapters/`，把 generic ROS 栈与 MO-SERGEANT 接入线的外部 contract 独立出来，不再把平台假设散落在 mission/safety 节点内部。
 - **field asset 资产化**：新增 `config/field_assets/` 与 `field_asset_id` 机制，把 route / named_regions / map 绑定从 profile 常量提升为可版本化赛场资产，并要求 field-asset-backed profile 不再重复内联真值。
 - **field deploy 平台默认值收口**：`launch/field_deploy.launch` 与 `launch/semantic_deploy.launch` 现在默认进入 `config/profiles/field_deploy/platform.yaml` 和 `config/profiles/field_deploy/system_manager.yaml`，不再误走 generic baseline 平台 profile。
-- **reference deploy 参考场地包分域化**：仓库新增 `mowen_raicom_reference_field_verified` 场地资产与 `mowen_reference_field_detector_manifest.json`，仓库将参考资产收口到 `config/profiles/reference_deploy/{vision,mission}.yaml`，`reference_field_deploy.launch` 与 `mowen_vendor_runtime.launch` 默认走参考闭环；真实 `field_deploy.launch` 仅接受显式提供的实测场地资产与 detector manifest。
+- **reference deploy 参考场地包分域化**：仓库新增 `mowen_raicom_reference_field_verified` 场地资产与 `mowen_reference_field_detector_manifest.json`，仓库将参考资产收口到 `config/profiles/reference_deploy/{vision,mission}.yaml`；`mowen_vendor_runtime.launch` 现在作为纯 alias 转发到 `mowen_vendor_sidecar.launch`，而 `mowen_vendor_sidecar.launch` 再 include `reference_field_deploy.launch` 形成默认参考闭环；仓库同时补充了 `mowen_raicom_packaged_field_verified` + `mowen_raicom_packaged_field_release` 作为 field_deploy 的代码级自包含 packaged 闭环输入，但其 notes 已明确声明：真实比赛前必须切换到 real_field_deploy 所要求的实测(measured)场地资产与 detector manifest。
 - **vendor bundle 硬门禁按入口分级**：`mowen_integration` / `baseline_legacy` / `reference_field_deploy` / `field_deploy` 继续要求 `vendor_bundle_preflight_mode=required`；`deploy.launch` / `baseline_deploy.launch` 仍保持仓库自洽的 contract smoke 入口，因此 `config/profiles/baseline/platform.yaml` 仅使用 `advisory`，并在 `config/profiles/baseline/system_manager.yaml` 中去除 `vendor_bundle_preflight_satisfied` 的强制 ready gate。
+- **managed vendor bundle manifest 收口**：platform profile 现在可显式声明 `vendor_bundle_manifest_path`、`vendor_bundle_lock_id`、`vendor_bundle_lock_version`；preflight 会同时校验受控 bundle 清单、锁版本与启动序列，避免 profile 只声明“依赖外部工作空间”但没有仓内版本证据。
+- **field asset release manifest 收口**：mission / vision 除了 `field_asset_id/field_asset_path` 外，还可声明 `field_asset_release_manifest_path`；release manifest 会把 map / route / named_regions / calibration / detector scope 绑定成单一发布单元，避免 profile 自行拼装 reference/field 资产。
 - **field-asset 缺失路径收硬**：当 `require_verified_field_asset=true` 时，缺省不填 `field_asset_id/field_asset_path` 也会直接报错，不能再靠“完全不声明资产”绕过 deploy/field gate。
 - **navigation contract 与运行时角色显式化**：mission 配置现在不仅声明 `navigation_adapter_type`，还显式声明并校验 `navigation_planner_backend`、`navigation_controller_backend`、`navigation_recovery_backend`、`navigation_localization_backend` 以及 goal/status/cancel transport；运行态进一步拆成 dispatcher / status monitor / canceller 三个显式角色，planner/controller/recovery/localization 不再只是健康摘要描述，而是启动期硬 contract。
 - **deploy safety 硬闭环收口**：MO-SERGEANT deploy 线现在通过 platform adapter 默认要求 `recon/platform/base_feedback`，并新增 `platform_bridge_node` 将 vendor 原始反馈/里程计心跳桥接到统一 contract，同时把 vendor 控制模式/急停/导航状态统一到 `recon/control_mode`、`recon/estop`、`recon/navigation_status`。`tests/baseline_deploy_smoke.test` 也改为先喂 `recon/platform/vendor/base_feedback_raw` 再由桥接节点归一化，证明 deploy 路径不再只是直接往最终 feedback topic 塞测试夹具。
@@ -31,6 +33,7 @@
 - **dynamic schema 负向异常路径补齐**：新增 `dynamic_schema_mismatch_smoke.test`，用故意错误的 embedded schema 验证 mission 会按 `class_schema_mismatch_policy=error` 进入 `FAULT`，而不是悄悄吞掉异常输入。
 - **namespace 真正落到 I/O 边界**：默认 topic/action 名保持相对路径，`output_root_use_namespace` 可把 ROS namespace 派生到工件目录。
 - **环境冻结材料补齐**：新增 `Dockerfile.noetic` 与 `docker/entrypoint.noetic.sh`，并把当前推荐支持环境收口到 Noetic/Focal 冻结线。
+- **runtime grade / 行为后端 / 硬件策略入主链**：mission / platform_bridge / recorder / system_manager 统一接收 `runtime_grade`，artifact 与健康态会带出 contract/reference/field 等级；`hazard_avoid` 与 `facility_attack(command_confirmed)` 不再停留在纯语义 dwell，而是通过 `behavior_action_backend` 走显式动作后端；platform bridge 新增 ultrasonic / IMU / voice / PS2 接入与 `runtime_evidence_topic`，将硬件策略必须项落入安全链与证据链。
 
 > 本仓库仍然**不内置官方专有 SDK、裁判系统协议、真实地图参数和真实识别模型**。它提供的是一套可直接接真实 ROS1 导航栈、相机和识别模型的规范基线。
 
@@ -319,7 +322,7 @@ roslaunch ruikang_recon_baseline field_deploy.launch \
   field_asset_path:=/abs/path/to/verified_field_asset.yaml
 ```
 
-`field_deploy.launch` 现在不再复用 baseline contract 级 field asset / detector manifest 默认值，而是切换到 `config/profiles/field_deploy/{vision,mission}.yaml`。该入口仍沿用 deploy 主链，但会强制 `require_verified_field_asset:=true` 与 `required_field_asset_verification_scope:=field`，同时要求通过 `model_manifest_path:=...` 显式注入 field-scoped detector manifest。未提供 verified 场地资产或 field-scoped detector manifest 时，vision / mission 会在启动期直接拒绝进入运行态。
+`field_deploy.launch` 现在不再复用 baseline contract 级 field asset / detector manifest 默认值，而是切换到 `config/profiles/field_deploy/{vision,mission}.yaml`。该入口仍沿用 deploy 主链，并强制 `require_verified_field_asset:=true` 与 `required_field_asset_verification_scope:=field`。仓库默认通过 packaged field release 注入 field-scoped detector manifest 与 authoritative asset；若切到真实比赛链，则需显式覆盖为实测 field release / asset / detector manifest，否则 vision / mission 两侧会在启动期执行 deploy-stage contract 校验并拒绝进入运行态。
 
 ### 5.3 baseline compatibility profile（兼容旧入口，不作为 deploy 主入口）
 
@@ -459,7 +462,28 @@ strict_backend: true
 
 必须完全一致，否则直接启动失败，防止静默错配。
 
-## 7.1 运行契约矩阵
+reference / field deploy profile 现在默认把 ONNX 模型路径收口到环境变量，而不是把绝对路径硬编码进 profile：
+
+- `config/profiles/reference_deploy/vision.yaml` 读取 `RUIKANG_REFERENCE_ONNX_MODEL`
+- `config/profiles/field_deploy/vision.yaml` 读取 `RUIKANG_FIELD_ONNX_MODEL`
+
+也可以继续显式提供 `onnx_model_path`；若两者同时提供，则显式配置优先。
+
+## 7.1 任务 DSL / 赛场 release
+
+reference / field deploy 现在支持通过 `task_dsl_path` 加载任务图 DSL；仓库内置示例位于：
+
+- `config/task_graphs/mowen_reference_competition_tasks.yaml`
+
+当 profile 同时声明 `field_asset_release_manifest_path` 与 `task_dsl_path` 时，mission 会先应用 release manifest，再基于 authoritative route 降低成运行时 `tasks`。这意味着 deploy 线可以同时保留 route 真值和 task graph，而不再要求手工维护两套互相漂移的任务定义。
+
+## 7.2 authoritative replay 工件
+
+authoritative replay manifest 现在除 `final_summary_v2.json` 外，还会索引 `final_summary.json`、`runtime_metrics.json`、`official_report.json`、submission receipt、snapshot、CSV 与 `mission_log.jsonl`，用于赛后复核与离线回放入口收口。
+
+recorder finalize 现在会额外产出 `authoritative_replay_manifest.json`，用于把 authoritative summary、dynamic schema、runtime evidence 与关键工件索引为单一 replay 入口。
+
+## 7.3 运行契约矩阵
 
 ### 主链接口
 
@@ -520,7 +544,7 @@ strict_backend: true
 
 ## 8.0 外部 vendor 工作空间接入
 
-仓库新增 `launch/mowen_vendor_runtime.launch`，用于把墨问原厂工作空间作为**外部依赖**接入，而不是把专有代码复制进本仓库。该入口现在内部走 `field_deploy.launch`，因此默认要求提供 verified field asset 与显式 `model_manifest_path`；同时新增 `vendor_namespace` / `vendor_ns_prefix` 契约：外部 vendor launch 会统一放进 `vendor_namespace` 作用域，bridge 的默认 upstream 话题会自动跟随该前缀生成（例如 `/vendor_a/odom`、`/vendor_a/cmd_vel`、`/vendor_a/move_base/status`、`/vendor_a/recon/platform/vendor/base_feedback_raw`）。默认 `vendor_namespace` 为空时，camera/odom/amcl/move_base 等消费面仍可等价对齐全局图；但上游 command ingress 不再默认回落到全局 `/cmd_vel`，以避免与 safety 输出形成自回环。此时应显式提供安全的 vendor command relay topic，或手工覆盖 `upstream_command_topic`。该入口现在把 upstream 话题覆盖直接透传进 `field_deploy -> deploy -> core` 的受管 `platform_bridge_node`，不再通过额外单起一个脱离 system manager required_nodes 的 bridge 实例来接线。针对 `isolated_legacy_workspace` 运行策略，profile 现在还必须声明 `vendor_runtime_contract_path`，并由 mission / vision / platform_bridge 在启动期共同校验外部 vendor runtime contract。
+仓库新增 `launch/mowen_vendor_sidecar.launch` 作为仓内 canonical managed sidecar 入口，`launch/mowen_vendor_runtime.launch` 现在仅作为**纯兼容 alias**转发所有公开参数到 sidecar，而不是再维护一份重复实现。sidecar 默认走 `reference_field_deploy.launch` 参考闭环；`field_deploy.launch` 默认附带 packaged field release 以完成仓内代码闭环；真实比赛前仍要求替换为实测 verified field asset 与 field-scoped detector manifest。同时新增 `vendor_namespace` / `vendor_ns_prefix` 契约：外部 vendor launch 会统一放进 `vendor_namespace` 作用域，bridge 的默认 upstream 话题会自动跟随该前缀生成（例如 `/vendor_a/odom`、`/vendor_a/cmd_vel`、`/vendor_a/move_base/status`、`/vendor_a/recon/platform/vendor/base_feedback_raw`）。默认 `vendor_namespace` 为空时，camera/odom/amcl/move_base 等消费面仍可等价对齐全局图；但上游 command ingress 不再默认回落到全局 `/cmd_vel`，以避免与 safety 输出形成自回环。此时应显式提供安全的 vendor command relay topic，或手工覆盖 `upstream_command_topic`。该入口把 upstream 话题覆盖直接透传进 `reference_field_deploy -> deploy -> core` 的受管 `platform_bridge_node`，不再通过额外单起一个脱离 system manager required_nodes 的 bridge 实例来接线。针对 `isolated_legacy_workspace` 运行策略，profile 现在还必须声明 `vendor_runtime_contract_path`，并由 mission / vision / platform_bridge 在启动期共同校验外部 vendor runtime contract。
 
 典型用法：
 
@@ -858,3 +882,11 @@ This prevents the typed detection lane from collapsing richer position evidence 
 - `estop_changed`
 
 `mission_recorder_node` folds these into `operator_interventions` inside `summary_snapshot_v2`, `final_summary_v2`, and `official_report.json` so deploy profiles can audit human takeover, control-mode transitions, and estop activations.
+
+
+## Deployment entrypoints
+
+- `contract_deploy.launch`: contract-gated deploy smoke.
+- `reference_field_deploy.launch`: reference-field gated managed deploy.
+- `real_field_deploy.launch`: canonical real-field deploy entry with synthetic disabled and field-grade asset/model gates.
+- `field_deploy.launch`: compatibility alias to `real_field_deploy.launch`.

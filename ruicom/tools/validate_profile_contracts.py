@@ -18,11 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from ruikang_recon_baseline.common import (  # noqa: E402
+    detector_manifest_satisfies_scope,
+    load_manifest,
     load_waypoints,
+    resolve_package_relative_path,
     validate_named_region_contract,
     validate_profile_runtime_flags,
     validate_route_frame_region_contract,
 )
+from ruikang_recon_baseline.field_asset_release import load_field_asset_release  # noqa: E402
 from ruikang_recon_baseline.field_assets import apply_field_asset_to_mission_config, apply_field_asset_to_vision_config  # noqa: E402
 from ruikang_recon_baseline.navigation_contracts import (  # noqa: E402
     apply_navigation_contract_defaults,
@@ -65,6 +69,34 @@ def assert_launch_profile_mapping(path: Path, expected: dict, *, owner: str) -> 
         actual = payload.get(key, '')
         if actual != expected_value:
             raise RuntimeError(f'{owner} expected {key}={expected_value!r} but found {actual!r}')
+
+
+
+
+def validate_manifest_contract(payload: dict, *, owner: str) -> None:
+    manifest_path = resolve_package_relative_path(payload.get('model_manifest_path', ''))
+    if not manifest_path:
+        return
+    manifest = load_manifest(manifest_path)
+    profile_role = str(payload.get('profile_role', '')).strip().lower()
+    required_scope = str(payload.get('required_field_asset_verification_scope', '')).strip().lower() or 'contract'
+    if profile_role == 'deploy' and not detector_manifest_satisfies_scope(manifest, required_scope=required_scope):
+        raise RuntimeError(f'{owner} detector manifest grade {manifest.deployment_grade!r} does not satisfy required scope {required_scope!r}')
+
+
+
+def validate_onnx_binding_contract(payload: dict, *, owner: str) -> None:
+    detector_type = str(payload.get('detector_type', '')).strip().lower()
+    if detector_type != 'onnx':
+        return
+    model_path = str(payload.get('onnx_model_path', '')).strip()
+    env_name = str(payload.get('onnx_model_path_env', '')).strip()
+    if not model_path and not env_name:
+        raise RuntimeError(f'{owner} detector_type=onnx requires onnx_model_path or onnx_model_path_env')
+    if model_path:
+        resolved = resolve_package_relative_path(model_path) or str(Path(model_path).expanduser().resolve())
+        if not Path(resolved).exists():
+            raise RuntimeError(f'{owner} onnx_model_path does not exist: {resolved}')
 
 
 def validate_launch_compositions() -> None:
@@ -129,17 +161,17 @@ def validate_launch_compositions() -> None:
         owner='demo_synthetic.launch',
     )
     assert_launch_profile_mapping(
-        ROOT / 'launch' / 'field_deploy.launch',
+        ROOT / 'launch' / 'real_field_deploy.launch',
         {
             'namespace': '$(arg namespace)',
-            'enable_synthetic': '$(arg enable_synthetic)',
+            'enable_synthetic': 'false',
             'enable_vision': '$(arg enable_vision)',
             'enable_mission': '$(arg enable_mission)',
             'enable_recorder': '$(arg enable_recorder)',
             'enable_safety': '$(arg enable_safety)',
             'enable_platform_bridge': '$(arg enable_platform_bridge)',
             'output_root': '$(arg output_root)',
-            'profile_synthetic_config': '$(arg profile_synthetic_config)',
+            'profile_synthetic_config': '',
             'profile_platform_config': '$(arg profile_platform_config)',
             'profile_vision_config': '$(arg profile_vision_config)',
             'profile_mission_config': '$(arg profile_mission_config)',
@@ -153,6 +185,33 @@ def validate_launch_compositions() -> None:
             'field_asset_package_root': '$(arg field_asset_package_root)',
             'require_verified_field_asset': 'true',
             'required_field_asset_verification_scope': 'field',
+            'use_sim_time': '$(arg use_sim_time)',
+            'model_manifest_path': '$(arg model_manifest_path)',
+            'vendor_runtime_contract_path': '$(arg vendor_runtime_contract_path)',
+        },
+        owner='real_field_deploy.launch',
+    )
+    assert_launch_profile_mapping(
+        ROOT / 'launch' / 'field_deploy.launch',
+        {
+            'namespace': '$(arg namespace)',
+            'enable_vision': '$(arg enable_vision)',
+            'enable_mission': '$(arg enable_mission)',
+            'enable_recorder': '$(arg enable_recorder)',
+            'enable_safety': '$(arg enable_safety)',
+            'enable_platform_bridge': '$(arg enable_platform_bridge)',
+            'output_root': '$(arg output_root)',
+            'profile_platform_config': '$(arg profile_platform_config)',
+            'profile_vision_config': '$(arg profile_vision_config)',
+            'profile_mission_config': '$(arg profile_mission_config)',
+            'profile_recorder_config': '$(arg profile_recorder_config)',
+            'profile_safety_config': '$(arg profile_safety_config)',
+            'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'camera_topic': '$(arg camera_topic)',
+            'detections_topic': '$(arg detections_topic)',
+            'field_asset_id': '$(arg field_asset_id)',
+            'field_asset_path': '$(arg field_asset_path)',
+            'field_asset_package_root': '$(arg field_asset_package_root)',
             'use_sim_time': '$(arg use_sim_time)',
             'model_manifest_path': '$(arg model_manifest_path)',
             'vendor_runtime_contract_path': '$(arg vendor_runtime_contract_path)',
@@ -194,6 +253,7 @@ def validate_launch_compositions() -> None:
     for wrapper, target in [
         ('baseline.launch', 'integration.launch'),
         ('baseline_deploy.launch', 'deploy.launch'),
+        ('field_deploy.launch', 'real_field_deploy.launch'),
         ('baseline_contract.launch', 'contract.launch'),
         ('baseline_legacy.launch', 'legacy.launch'),
         ('mowen_integration.launch', 'integration.launch'),
@@ -201,6 +261,18 @@ def validate_launch_compositions() -> None:
         content = (ROOT / 'launch' / wrapper).read_text(encoding='utf-8')
         if target not in content:
             raise RuntimeError(f'{wrapper} must include {target} as a compatibility alias')
+    if not (ROOT / 'launch' / 'mowen_vendor_sidecar.launch').exists():
+        raise RuntimeError('mowen_vendor_sidecar.launch must exist')
+    sidecar_launch = (ROOT / 'launch' / 'mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
+    for token in ('vendor_execution_feedback_topic', 'native_feedback_source_declared', 'require_explicit_feedback_source', 'vendor_feedback_command_topic', 'vendor_feedback_timeout_sec', 'vendor_feedback_command_timeout_sec'):
+        if token not in sidecar_launch:
+            raise RuntimeError(f'mowen_vendor_sidecar.launch must expose {token}')
+    if 'name="vendor_feedback_node" ns="$(arg namespace)"' not in sidecar_launch:
+        raise RuntimeError('mowen_vendor_sidecar.launch must namespace vendor_feedback_node with $(arg namespace)')
+    if 'name="vendor_sidecar_contract_node" ns="$(arg namespace)"' not in sidecar_launch:
+        raise RuntimeError('mowen_vendor_sidecar.launch must namespace vendor_sidecar_contract_node with $(arg namespace)')
+    if 'required="true"' not in sidecar_launch:
+        raise RuntimeError('mowen_vendor_sidecar.launch must make vendor_sidecar_contract_node required=true')
     assert_launch_profile_mapping(
         ROOT / 'tests' / 'baseline_contract_smoke.test',
         {
@@ -271,6 +343,7 @@ def validate_profile(profile_name: str, *, require_vision: bool = True, require_
             require_named_regions=str(vision_payload.get('frame_region_adapter_type', 'none')).strip().lower() == 'named_regions',
             owner='{}.vision'.format(profile_name),
         )
+        validate_manifest_contract(vision_payload, owner='{}.vision'.format(profile_name))
     if mission_payload:
         mission_payload.update(platform_payload)
         capability = apply_platform_mission_defaults(mission_payload)
@@ -293,6 +366,7 @@ def validate_profile(profile_name: str, *, require_vision: bool = True, require_
             allowed_frame_regions=mission_payload.get('expected_frame_regions', []),
             owner='{}.mission'.format(profile_name),
         )
+        validate_manifest_contract(mission_payload, owner='{}.mission'.format(profile_name))
     validate_profile_runtime_flags(
         recorder_payload.get('profile_role', 'integration'),
         owner='{}.recorder'.format(profile_name),
@@ -347,6 +421,10 @@ def main() -> int:
     }
     for profile_name, kwargs in profiles.items():
         validate_profile(profile_name, **kwargs)
+    for release_path in sorted((ROOT / 'config' / 'field_assets' / 'releases').glob('*.yaml')):
+        release = load_field_asset_release(str(release_path))
+        if release is None:
+            raise RuntimeError(f'failed to load field-asset release {release_path.relative_to(ROOT)}')
     baseline_vision, _ = apply_field_asset_to_vision_config(load_yaml(ROOT / 'config/profiles/baseline/vision.yaml'), owner='baseline.vision')
     baseline_mission, _ = apply_field_asset_to_mission_config(load_yaml(ROOT / 'config/profiles/baseline/mission.yaml'), owner='baseline.mission')
     integration_vision_file = ROOT / 'config/profiles/mowen_integration/vision.yaml'
@@ -364,29 +442,54 @@ def main() -> int:
             raise RuntimeError(f'baseline_integration alias drifted from mowen_integration canonical profile for {relative}')
     reference_deploy_vision = load_yaml(ROOT / 'config/profiles/reference_deploy/vision.yaml')
     reference_deploy_mission = load_yaml(ROOT / 'config/profiles/reference_deploy/mission.yaml')
-    if reference_deploy_vision.get('field_asset_id', '') != 'mowen_raicom_reference_field_verified':
-        raise RuntimeError('reference_deploy vision must use mowen_raicom_reference_field_verified asset')
-    if reference_deploy_mission.get('field_asset_id', '') != 'mowen_raicom_reference_field_verified':
-        raise RuntimeError('reference_deploy mission must use mowen_raicom_reference_field_verified asset')
-    if reference_deploy_vision.get('model_manifest_path', '') != 'config/manifests/mowen_reference_field_detector_manifest.json':
+    reference_deploy_vision_resolved, reference_asset = apply_field_asset_to_vision_config(dict(reference_deploy_vision), owner='reference_deploy.vision')
+    reference_deploy_mission_resolved, reference_mission_asset = apply_field_asset_to_mission_config(dict(reference_deploy_mission), owner='reference_deploy.mission')
+    if reference_asset is None or reference_mission_asset is None:
+        raise RuntimeError('reference_deploy must resolve a repository-managed release asset')
+    if reference_asset.asset_id != 'mowen_raicom_reference_field_verified':
+        raise RuntimeError('reference_deploy vision must resolve mowen_raicom_reference_field_verified asset')
+    if reference_mission_asset.asset_id != 'mowen_raicom_reference_field_verified':
+        raise RuntimeError('reference_deploy mission must resolve mowen_raicom_reference_field_verified asset')
+    if reference_deploy_vision_resolved.get('model_manifest_path', '') != 'config/manifests/mowen_reference_field_detector_manifest.json':
         raise RuntimeError('reference_deploy vision must use config/manifests/mowen_reference_field_detector_manifest.json')
-    if reference_deploy_mission.get('required_field_asset_verification_scope', '') != 'reference':
+    if reference_deploy_vision_resolved.get('detector_type', '') != 'onnx':
+        raise RuntimeError('reference_deploy vision must use detector_type=onnx')
+    validate_onnx_binding_contract(reference_deploy_vision_resolved, owner='reference_deploy.vision')
+    if reference_deploy_mission.get('task_dsl_path', '') != 'config/task_graphs/mowen_reference_competition_tasks.yaml':
+        raise RuntimeError('reference_deploy mission must use competition task DSL')
+    if reference_deploy_mission_resolved.get('required_field_asset_verification_scope', '') != 'reference':
         raise RuntimeError('reference_deploy mission must require reference asset scope')
-    if reference_deploy_vision.get('required_field_asset_verification_scope', '') != 'reference':
+    if reference_deploy_vision_resolved.get('required_field_asset_verification_scope', '') != 'reference':
         raise RuntimeError('reference_deploy vision must require reference asset scope')
 
     field_deploy_vision = load_yaml(ROOT / 'config/profiles/field_deploy/vision.yaml')
     field_deploy_mission = load_yaml(ROOT / 'config/profiles/field_deploy/mission.yaml')
-    if field_deploy_vision.get('field_asset_id', ''):
-        raise RuntimeError('field_deploy vision must not embed a repository reference asset')
-    if field_deploy_mission.get('field_asset_id', ''):
-        raise RuntimeError('field_deploy mission must not embed a repository reference asset')
-    if field_deploy_vision.get('model_manifest_path', ''):
-        raise RuntimeError('field_deploy vision must not embed a reference detector manifest')
-    if field_deploy_vision.get('required_field_asset_verification_scope', '') != 'field':
+    field_deploy_vision_resolved, field_asset = apply_field_asset_to_vision_config(dict(field_deploy_vision), owner='field_deploy.vision')
+    field_deploy_mission_resolved, field_mission_asset = apply_field_asset_to_mission_config(dict(field_deploy_mission), owner='field_deploy.mission')
+    if field_asset is None or field_mission_asset is None:
+        raise RuntimeError('field_deploy must resolve a packaged field release asset')
+    if field_asset.asset_id != 'mowen_raicom_packaged_field_verified':
+        raise RuntimeError('field_deploy vision must resolve mowen_raicom_packaged_field_verified asset')
+    if field_mission_asset.asset_id != 'mowen_raicom_packaged_field_verified':
+        raise RuntimeError('field_deploy mission must resolve mowen_raicom_packaged_field_verified asset')
+    if field_deploy_vision_resolved.get('model_manifest_path', '') != 'config/manifests/mowen_packaged_field_detector_manifest.json':
+        raise RuntimeError('field_deploy vision must use config/manifests/mowen_packaged_field_detector_manifest.json')
+    if field_deploy_vision_resolved.get('detector_type', '') != 'onnx':
+        raise RuntimeError('field_deploy vision must use detector_type=onnx')
+    validate_onnx_binding_contract(field_deploy_vision_resolved, owner='field_deploy.vision')
+    if field_deploy_vision_resolved.get('required_field_asset_verification_scope', '') != 'field':
         raise RuntimeError('field_deploy vision must require field scope')
-    if field_deploy_mission.get('required_field_asset_verification_scope', '') != 'field':
+    if field_deploy_mission_resolved.get('required_field_asset_verification_scope', '') != 'field':
         raise RuntimeError('field_deploy mission must require field scope')
+    if field_deploy_vision_resolved.get('field_asset_provenance', '') != 'packaged':
+        raise RuntimeError('field_deploy packaged release must resolve packaged provenance')
+    if field_deploy_mission_resolved.get('field_asset_provenance', '') != 'packaged':
+        raise RuntimeError('field_deploy packaged release mission must resolve packaged provenance')
+    if field_deploy_mission.get('task_dsl_path', '') != 'config/task_graphs/mowen_field_competition_tasks.yaml':
+        raise RuntimeError('field_deploy mission must use field competition task DSL')
+    if field_deploy_mission_resolved.get('route', []) == reference_deploy_mission_resolved.get('route', []):
+        raise RuntimeError('field_deploy authoritative route must not drift back to reference_deploy route payload')
+
     for rel in [
         'config/profiles/baseline/platform.yaml',
         'config/profiles/baseline_integration/platform.yaml',
@@ -416,6 +519,9 @@ def main() -> int:
     manifest_file = ROOT / manifest_path
     if not manifest_file.exists():
         raise RuntimeError('baseline deploy detector manifest does not exist: {}'.format(manifest_file))
+    real_field_launch = (ROOT / 'launch' / 'real_field_deploy.launch').read_text(encoding='utf-8')
+    if 'required_field_asset_provenance" value="measured"' not in real_field_launch and 'required_field_asset_provenance' not in real_field_launch:
+        raise RuntimeError('real_field_deploy.launch must require measured provenance')
     validate_system_manager_profile('baseline')
     validate_system_manager_profile('field_deploy')
     validate_system_manager_profile('reference_deploy')

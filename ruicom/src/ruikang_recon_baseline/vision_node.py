@@ -32,6 +32,7 @@ from .common import (
     validate_profile_runtime_flags,
 )
 from .field_assets import apply_field_asset_to_vision_config
+from .deploy_contracts import validate_deploy_stage_contract
 from .platform_adapters import apply_platform_vision_defaults, validate_platform_contract_bindings, validate_platform_runtime_strategy
 from .vendor_runtime_contracts import (
     build_vendor_runtime_binding_report,
@@ -157,6 +158,7 @@ class VisionCounterNode:
             'output_root_use_namespace': bool(rospy.get_param('~output_root_use_namespace', True)),
             'detector_type': rospy.get_param('~detector_type', 'color_blob'),
             'onnx_model_path': rospy.get_param('~onnx_model_path', ''),
+            'onnx_model_path_env': str(rospy.get_param('~onnx_model_path_env', '')).strip(),
             'model_manifest_path': rospy.get_param('~model_manifest_path', ''),
             'parser_type': rospy.get_param('~parser_type', 'yolo_v5_like'),
             'input_size': int(rospy.get_param('~input_size', 640)),
@@ -199,14 +201,20 @@ class VisionCounterNode:
             'allow_odom_feedback_fallback': bool(rospy.get_param('~allow_odom_feedback_fallback', False)),
             'require_verified_field_asset': bool(rospy.get_param('~require_verified_field_asset', False)),
             'required_field_asset_verification_scope': str(rospy.get_param('~required_field_asset_verification_scope', 'contract')).strip().lower() or 'contract',
+            'required_field_asset_provenance': str(rospy.get_param('~required_field_asset_provenance', '')).strip().lower(),
             'allowed_deploy_detector_types': rospy.get_param('~allowed_deploy_detector_types', ['onnx', 'color_blob']),
             'require_detector_manifest_in_deploy': bool(rospy.get_param('~require_detector_manifest_in_deploy', False)),
             'camera_ready_timeout_sec': float(rospy.get_param('~camera_ready_timeout_sec', 1.5)),
             'camera_topic_type': str(rospy.get_param('~camera_topic_type', 'sensor_msgs/Image')).strip(),
+            'field_asset_release_manifest_path': str(rospy.get_param('~field_asset_release_manifest_path', '')).strip(),
         }
         config['input_size'] = int(require_positive_float('input_size', config['input_size']))
         config['camera_ready_timeout_sec'] = require_positive_float('camera_ready_timeout_sec', config['camera_ready_timeout_sec'])
         config['allowed_deploy_detector_types'] = [str(item).strip().lower() for item in config['allowed_deploy_detector_types'] if str(item).strip()]
+        if not str(config.get('onnx_model_path', '')).strip() and str(config.get('onnx_model_path_env', '')).strip():
+            env_value = os.environ.get(str(config.get('onnx_model_path_env', '')).strip(), '').strip()
+            if env_value:
+                config['onnx_model_path'] = env_value
         config['confidence_threshold'] = require_positive_float('confidence_threshold', config['confidence_threshold'], allow_zero=True)
         config['score_threshold'] = require_positive_float('score_threshold', config['score_threshold'], allow_zero=True)
         config['nms_threshold'] = require_positive_float('nms_threshold', config['nms_threshold'], allow_zero=True)
@@ -227,6 +235,7 @@ class VisionCounterNode:
             owner='vision_counter_node',
             lifecycle_managed=bool(config['lifecycle_managed']),
         )
+        config['deploy_stage_contract'] = validate_deploy_stage_contract(config, owner='vision_counter_node')
         capability = apply_platform_vision_defaults(config)
         config['platform_contract'] = capability.summary()
         config['platform_contract_bindings'] = validate_platform_contract_bindings(

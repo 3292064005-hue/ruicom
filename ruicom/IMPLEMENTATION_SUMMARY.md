@@ -12,8 +12,12 @@
 - **P0-01b 外部 vendor runtime contract**：`isolated_legacy_workspace` profile 现在必须声明 `vendor_runtime_contract_path`，由 mission / vision / platform_bridge 分域校验外部工作空间绑定与版本约束。contract 还会显式携带 `vendor_workspace_name`、`vendor_entrypoints`、`vendor_resource`、`bridge_output` 等证据字段，并在 health 中汇总为 `vendor_runtime_binding_report`。
 - **P0-01c vendor bundle 按入口分级**：真实 vendor/legacy/reference/field 入口继续使用 `vendor_bundle_preflight_mode=required`；但仓库自带的 `deploy.launch` / `baseline_deploy.launch` 保持 contract smoke 定位，因此 baseline 平台 profile 下调为 `advisory`，并通过 `config/profiles/baseline/system_manager.yaml` 去掉 `vendor_bundle_preflight_satisfied` 的 ready 强约束，避免仓库自身的 Noetic smoke/rostest 被默认外部依赖阻断。
 - **P0-03 runtime probe 收口**：`runtime_probes.py` 改为对解析后的绑定名做精确匹配，graph/semantic/mission 三阶段 readiness 不再接受其他命名空间或其他机器人图中的 suffix 同名话题。
-- **P0-02 deploy / field asset 门禁**：`require_verified_field_asset=true` 时，缺省不填 `field_asset_id/field_asset_path` 也会直接失败；`field_deploy.launch` 强制 `required_field_asset_verification_scope=field`，并默认进入 `config/profiles/field_deploy/platform.yaml` / `system_manager.yaml`，不再误走 generic baseline 平台 profile。仓库新增 `mowen_raicom_reference_field_verified` 场地资产与 `mowen_reference_field_detector_manifest.json`，并将其限定为 `reference_field_deploy.launch` 的参考闭环输入；真实 `field_deploy.launch` 不再默认吃参考资产。
+- **P0-02 deploy / field asset 门禁**：`require_verified_field_asset=true` 时，缺省不填 `field_asset_id/field_asset_path` 也会直接失败；`field_deploy.launch` 强制 `required_field_asset_verification_scope=field`，并默认进入 `config/profiles/field_deploy/platform.yaml` / `system_manager.yaml`，不再误走 generic baseline 平台 profile。仓库新增 `mowen_raicom_reference_field_verified` 与 `mowen_raicom_packaged_field_verified` 两条受控资产线：前者限定给 `reference_field_deploy.launch`，后者通过 `mowen_raicom_packaged_field_release` 提供 field_deploy 的仓内代码闭环输入；真实比赛前仍必须替换为实测 field 资产。
 - **P0-03 detector / manifest / schema 闭环**：baseline deploy profile 已要求 detector manifest；profile validator 会检查 manifest 文件存在且 deploy profile 不再靠空模型 contract 冒充闭环。
+- **P0-03b ONNX deploy 主路径**：`reference_deploy` / `field_deploy` 视觉 profile 已切到 `detector_type=onnx`，并通过环境变量收口模型路径；同时新增 packaged field detector manifest 以完成 field 级 deploy contract 装配。`color_blob` 仅保留为 contract/debug fallback。
+- **P0-02b field asset release 收口**：field asset 不再只是一张裸 YAML；mission / vision 新增 `field_asset_release_manifest_path`，release 会把 route、named_regions、map、calibration 与 detector scope 作为单一发布单元校验。
+- **P1-02b task DSL 落地**：reference / field deploy 新增 `task_dsl_path`，运行时会基于 authoritative route 降低出 `tasks`，并允许 deploy 线同时保留 route 真值与 task graph。
+- **P0-02 / P1-02 / P1-03 / P2-02 贯通**：新增 `behavior_actions.py` 与 `navigation_execution.py`，将 `hazard_avoid`、`facility_attack(command_confirmed)` 升级为显式动作后端；mission / recorder / system_manager / platform_bridge 统一传播 `runtime_grade`；platform bridge 接入 ultrasonic / IMU / voice / PS2 并产出 runtime evidence；仓库新增 `tools/validate_acceptance_tiers.py` 固化 contract / reference / field 三级验收阶梯。
 
 ### P1
 - **P1-01 feedback 语义收硬**：`platform_bridge_core.py` 不再把 odom heartbeat 默认等价为执行反馈；MO-SERGEANT deploy 默认要求显式 `recon/platform/base_feedback`，odom 仅可在允许时作为 fallback 或 observability。
@@ -53,6 +57,9 @@
 - `python3 -m compileall -q src scripts tools`
 - `PYTHONPATH=src python3 -m pytest -q tests/test_*.py`
 - `python3 tools/validate_profile_contracts.py`
+- `python3 tools/validate_field_asset_release.py`
+- `python3 tools/validate_launch_contracts.py`
+- `python3 tools/validate_acceptance_tiers.py`
 
 ### 未真实环境验证
 - `catkin_make`
@@ -85,3 +92,11 @@
 
 
 - Navigation runtime live readiness now requires action status freshness plus post-dispatch action feedback/result roundtrip evidence when a goal is active.
+
+
+## 2026-04-09 hardening
+
+- Added `navigation_backend_profile` as an explicit runtime contract.
+- Added managed vendor sidecar entrypoints and repo-visible preflight checks.
+- Added canonical `real_field_deploy.launch` and preserved `field_deploy.launch` as an alias.
+- Added `runtime_metrics.json` artifact and stronger submission-contract identity checks.

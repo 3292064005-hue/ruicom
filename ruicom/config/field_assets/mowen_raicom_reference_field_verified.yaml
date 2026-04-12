@@ -7,6 +7,7 @@ verification_scope: reference
 route_layout_id: "mowen_raicom_reference_field_route_v1"
 named_region_layout_id: "mowen_raicom_reference_field_regions_v1"
 calibration_bundle_id: "mowen_raicom_reference_field_calib_v1"
+detector_manifest_path: "config/manifests/mowen_reference_field_detector_manifest.json"
 notes: "Reference in-repo field asset used to exercise managed reference deploy flows. It is not a measured competition asset and must never be used as a real field deploy substitute."
 map_id: "mowen_raicom_reference_field_map"
 camera_calibration_id: "mowen_raicom_reference_field_camera"

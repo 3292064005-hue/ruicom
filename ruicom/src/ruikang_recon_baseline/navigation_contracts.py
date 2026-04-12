@@ -17,6 +17,7 @@ VALID_LOCALIZATION_BACKENDS = ('odometry_topic', 'amcl_pose_topic', 'tf_lookup_p
 VALID_GOAL_TRANSPORTS = ('actionlib', 'topic')
 VALID_STATUS_TRANSPORTS = ('actionlib', 'topic', 'internal_pose_evaluator')
 VALID_CANCEL_TRANSPORTS = ('actionlib', 'topic', 'none')
+VALID_BACKEND_PROFILES = ('move_base_managed', 'topic_pose_evaluator', 'topic_status_bridge')
 
 
 def _normalize(value: object) -> str:
@@ -58,6 +59,8 @@ def apply_navigation_contract_defaults(config: dict) -> dict:
         config['navigation_status_transport'] = capability['status_transport']
     if config.get('navigation_cancel_transport') in (None, ''):
         config['navigation_cancel_transport'] = capability['cancel_transport']
+    if config.get('navigation_backend_profile') in (None, ''):
+        config['navigation_backend_profile'] = capability['backend_profile']
     config['navigation_capability_contract'] = capability
     return capability
 
@@ -78,6 +81,7 @@ def validate_navigation_runtime_strategy(config: Mapping[str, object], *, owner:
     goal_transport = _normalize(config.get('navigation_goal_transport', ''))
     status_transport = _normalize(config.get('navigation_status_transport', ''))
     cancel_transport = _normalize(config.get('navigation_cancel_transport', ''))
+    backend_profile = _normalize(config.get('navigation_backend_profile', ''))
     expected_localization = _expected_localization_backend(config.get('pose_source_type', ''))
 
     for label, value, valid in [
@@ -85,6 +89,7 @@ def validate_navigation_runtime_strategy(config: Mapping[str, object], *, owner:
         ('navigation_goal_transport', goal_transport, VALID_GOAL_TRANSPORTS),
         ('navigation_status_transport', status_transport, VALID_STATUS_TRANSPORTS),
         ('navigation_cancel_transport', cancel_transport, VALID_CANCEL_TRANSPORTS),
+        ('navigation_backend_profile', backend_profile, VALID_BACKEND_PROFILES),
     ]:
         if value not in valid:
             raise ConfigurationError('{} {} must be one of {}'.format(owner, label, ', '.join(valid)))
@@ -97,6 +102,7 @@ def validate_navigation_runtime_strategy(config: Mapping[str, object], *, owner:
         'navigation_goal_transport': _normalize(capability['goal_transport']),
         'navigation_status_transport': _normalize(capability['status_transport']),
         'navigation_cancel_transport': _normalize(capability['cancel_transport']),
+        'navigation_backend_profile': _normalize(capability['backend_profile']),
     }
     actuals = {
         'navigation_planner_backend': planner_backend,
@@ -106,6 +112,7 @@ def validate_navigation_runtime_strategy(config: Mapping[str, object], *, owner:
         'navigation_goal_transport': goal_transport,
         'navigation_status_transport': status_transport,
         'navigation_cancel_transport': cancel_transport,
+        'navigation_backend_profile': backend_profile,
     }
     for key, expected in expectations.items():
         actual = actuals[key]
@@ -121,6 +128,7 @@ def validate_navigation_runtime_strategy(config: Mapping[str, object], *, owner:
         'goal_transport': goal_transport,
         'status_transport': status_transport,
         'cancel_transport': cancel_transport,
+        'backend_profile': backend_profile,
         'status_source': capability['status_source'],
         'supports_cancel': bool(capability['supports_cancel']),
         'requires_external_status': bool(capability['requires_external_status']),

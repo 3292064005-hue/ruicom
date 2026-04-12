@@ -1,10 +1,13 @@
-platform_adapter_type: "generic_ros_nav"
+platform_adapter_type: generic_ros_nav
 enable_platform_bridge: false
 vendor_runtime_mode: native_noetic
 vendor_workspace_ros_distro: noetic
 vendor_workspace_python_major: 3
 vendor_runtime_contract_path: ''
-vendor_bundle_preflight_mode: off
+vendor_bundle_manifest_path: ''
+vendor_bundle_lock_id: ''
+vendor_bundle_lock_version: ''
+vendor_bundle_preflight_mode: false
 vendor_workspace_root: ''
 vendor_workspace_root_env: MOWEN_VENDOR_WORKSPACE_ROOT
 motion_model: differential
@@ -24,3 +27,11 @@ navigation_status_topic: recon/navigation_status
 platform_bridge_state_topic: recon/platform/bridge_state
 default_control_mode: COMMANDER
 publish_rate_hz: 20.0
+runtime_grade: integration
+runtime_evidence_topic: recon/runtime/evidence
+upstream_ultrasonic_topic: ''
+upstream_imu_topic: ''
+upstream_voice_command_topic: ''
+upstream_ps2_command_topic: ''
+ultrasonic_min_clearance_m: 0.25
+imu_timeout_sec: 1.5

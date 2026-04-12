@@ -14,3 +14,4 @@ navigation_localization_backend: amcl_pose_topic
 navigation_goal_transport: actionlib
 navigation_status_transport: actionlib
 navigation_cancel_transport: actionlib
+navigation_backend_profile: move_base_managed

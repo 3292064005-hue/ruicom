@@ -38,3 +38,7 @@ class MissionContext:
     schema_blocked_reason: str = ''
     preflight_deadline: float = 0.0
     last_preflight_warning_mono: float = 0.0
+    active_behavior_command: Dict[str, object] = field(default_factory=dict)
+    active_behavior_feedback: Dict[str, object] = field(default_factory=dict)
+    behavior_action_deadline: float = 0.0
+    behavior_dwell_after_success: bool = False

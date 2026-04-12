@@ -4,6 +4,9 @@ vendor_runtime_mode: isolated_legacy_workspace
 vendor_workspace_ros_distro: melodic
 vendor_workspace_python_major: 2
 vendor_runtime_contract_path: config/vendor_runtime/mowen_mo_sergeant_vendor_contract.yaml
+vendor_bundle_manifest_path: config/vendor_runtime/mowen_mo_sergeant_managed_bundle.yaml
+vendor_bundle_lock_id: mowen_mo_sergeant_managed_bundle
+vendor_bundle_lock_version: 1.0.0
 vendor_bundle_preflight_mode: required
 motion_model: mecanum_holonomic
 cmd_vel_semantics: planar_xy_yaw

@@ -11,6 +11,7 @@ output_root: ~/.ros/ruikang_recon
 output_root_use_namespace: true
 detector_type: color_blob
 onnx_model_path: ''
+onnx_model_path_env: ''
 model_manifest_path: ''
 parser_type: yolo_v5_like
 input_size: 640
@@ -127,4 +128,5 @@ platform_adapter_type: generic_ros_nav
 field_asset_id: ''
 field_asset_path: ''
 field_asset_package_root: ''
+field_asset_release_manifest_path: ''
 required_field_asset_verification_scope: contract

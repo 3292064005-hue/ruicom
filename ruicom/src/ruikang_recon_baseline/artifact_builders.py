@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import time
 
+from .authoritative_replay import build_authoritative_replay_manifest
 from .common import SCHEMA_VERSION
 from .recorder_core import build_summary_snapshot_payload, build_summary_snapshot_v2_payload
 
@@ -26,7 +27,7 @@ class RecorderArtifactBuilder:
             last_health=owner.last_health,
             terminal_state_seen=owner.terminal_state_seen,
             operator_interventions=owner.operator_interventions,
-        )
+        ) | {'runtime_grade': str(owner.config.get('runtime_grade', 'integration')).strip() or 'integration'}
 
     def build_summary_v2(self, owner):
         """Build the dynamic summary snapshot/final-summary payload."""
@@ -43,7 +44,7 @@ class RecorderArtifactBuilder:
             last_health=owner.last_health,
             terminal_state_seen=owner.terminal_state_seen,
             operator_interventions=owner.operator_interventions,
-        )
+        ) | {'runtime_grade': str(owner.config.get('runtime_grade', 'integration')).strip() or 'integration'}
 
     def write_csv_legacy(self, owner, zone_results: dict):
         """Write the legacy CSV projection of zone results."""
@@ -87,12 +88,78 @@ class RecorderArtifactBuilder:
                 ])
 
 
+
+    def build_authoritative_replay(self, owner):
+        """Build the recorder authoritative replay manifest for v2 artifacts.
+
+        Args:
+            owner: Recorder node instance exposing canonical artifact paths.
+
+        Returns:
+            JSON-serializable replay manifest indexing authoritative and
+            companion recorder artifacts.
+        """
+        summary_v2 = self.build_summary_v2(owner)
+        return build_authoritative_replay_manifest(
+            summary_v2,
+            summary_path=owner.final_summary_v2_json,
+            output_root=owner.output_root,
+            summary_legacy_path=owner.final_summary_json,
+            runtime_metrics_path=owner.runtime_metrics_json,
+            official_report_path=owner.official_report_json,
+            official_report_receipt_path=owner.official_report_receipt_json,
+            summary_snapshot_v2_path=owner.current_snapshot_v2_json,
+            summary_snapshot_legacy_path=owner.current_snapshot_json,
+            final_summary_v2_csv_path=owner.final_summary_v2_csv,
+            final_summary_csv_path=owner.final_summary_csv,
+            mission_log_path=getattr(getattr(owner, 'writer', None), 'path', ''),
+        )
+
+    def build_runtime_metrics(self, owner):
+        """Build one compact runtime-metrics payload for post-run diagnostics.
+
+        Args:
+            owner: Recorder node instance exposing current runtime state.
+
+        Returns:
+            JSON-serializable metrics payload.
+
+        Raises:
+            No explicit exception is raised.
+
+        Boundary behavior:
+            Missing optional runtime fields are normalized to conservative
+            defaults so metrics remain writable even after partial runs.
+        """
+        return {
+            'generated_at_wall': time.time(),
+            'schema_version': SCHEMA_VERSION,
+            'runtime_state': str(getattr(owner.runtime, 'state', '')).strip(),
+            'terminal_state_seen': bool(owner.terminal_state_seen),
+            'consistency_blocked': bool(owner.consistency_blocked),
+            'compat_shadow_events': int(owner.compat_shadow_events),
+            'class_schema_mismatch_count': int(owner.class_schema_mismatch_count),
+            'typed_seen': dict(owner.typed_seen),
+            'writer_status': {
+                'dropped_messages': int(owner.writer.dropped_messages),
+                'last_error': owner.writer.last_error or '',
+            },
+            'zone_result_count': len(owner.zone_results_dynamic),
+            'frame_region_count': len(owner.latest_frame_region_counts),
+            'health_nodes_seen': len(owner.health_typed_seen_by_node),
+            'last_health_status': str((owner.last_health or {}).get('status', '')).strip(),
+            'operator_interventions': dict(owner.operator_interventions),
+            'submission_receipt_present': bool(owner.last_submission_receipt),
+            'runtime_grade': str(owner.config.get('runtime_grade', 'integration')).strip() or 'integration',
+        }
+
     def build_official_report(self, owner):
         report = self.build_summary_v2(owner)
         sink_path = str(owner.config.get('official_report_sink_path', '')).strip()
         submission_mode = str(owner.config.get('official_report_mode', 'artifact')).strip().lower() or 'artifact'
         contract_path = str(owner.config.get('official_report_contract_path', '')).strip()
         adapter_type = str((owner.submission_contract or {}).get('adapter_type', '')).strip()
+        contract_id = str((owner.submission_contract or {}).get('contract_id', '')).strip()
         return {
             "report_schema": owner.config["official_report_schema"],
             "report_version": owner.config["official_report_version"],
@@ -110,11 +177,13 @@ class RecorderArtifactBuilder:
             "operator_interventions": dict(report.get("operator_interventions", {})),
             "recorder_authoritative_input": owner.config["recorder_authoritative_input"],
             "acceptance_stage": str(owner.config.get('acceptance_stage', '')).strip() or 'contract_smoke',
+            "runtime_grade": str(owner.config.get('runtime_grade', 'integration')).strip() or 'integration',
             "submission_contract": {
                 "mode": submission_mode,
                 "sink_path": sink_path,
                 "contract_path": contract_path,
                 "adapter_type": adapter_type,
+                "contract_id": contract_id,
                 "ready": bool(submission_mode == 'artifact' or contract_path),
                 "submission_id": str(owner.config.get('official_report_submission_id', '')).strip(),
             },

@@ -28,6 +28,7 @@ class NavigationContractTest(unittest.TestCase):
         runtime = validate_navigation_runtime_strategy(config, owner='unit.nav')
         bindings = validate_navigation_contract_bindings(config, owner='unit.nav')
         self.assertEqual(runtime['planner_backend'], 'move_base_global_planner')
+        self.assertEqual(runtime['backend_profile'], 'move_base_managed')
         self.assertEqual(runtime['localization_backend'], 'amcl_pose_topic')
         self.assertIn('move_base', bindings['bound_actions'])
 
@@ -84,3 +85,31 @@ class NavigationContractTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class NavigationBackendProfileTest(unittest.TestCase):
+    def test_backend_profile_mismatch_is_rejected(self):
+        config = {
+            'navigation_adapter_type': 'move_base_action',
+            'move_base_action_name': 'move_base',
+            'simple_goal_topic': 'move_base_simple/goal',
+            'navigation_status_topic': 'recon/navigation_status',
+            'navigation_cancel_topic': '',
+            'navigation_status_timeout_sec': 3.0,
+            'wait_for_action_server_sec': 3.0,
+            'simulate_arrival_without_pose': False,
+            'synthetic_arrival_delay_sec': 1.0,
+            'pose_source_type': 'amcl_pose',
+            'amcl_pose_topic': 'amcl_pose',
+            'odom_topic': 'odom',
+            'navigation_planner_backend': 'move_base_global_planner',
+            'navigation_controller_backend': 'move_base_local_controller',
+            'navigation_recovery_backend': 'executor_policy',
+            'navigation_localization_backend': 'amcl_pose_topic',
+            'navigation_goal_transport': 'actionlib',
+            'navigation_status_transport': 'actionlib',
+            'navigation_cancel_transport': 'actionlib',
+            'navigation_backend_profile': 'topic_status_bridge',
+        }
+        with self.assertRaises(ConfigurationError):
+            validate_navigation_runtime_strategy(config, owner='unit.backend')

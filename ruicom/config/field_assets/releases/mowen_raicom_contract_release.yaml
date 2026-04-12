@@ -1,0 +1,8 @@
+release_id: mowen_raicom_contract_release
+release_version: 1.0.0
+verification_scope: contract
+field_asset_id: mowen_raicom_contract_verified
+detector_manifest_path: config/manifests/baseline_deploy_detector_manifest.json
+approved_at_utc: '2026-04-11T00:00:00Z'
+reviewer_id: repo_contract_gate
+notes: Repository-managed contract release binding the contract field asset to the contract detector manifest.

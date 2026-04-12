@@ -15,3 +15,4 @@ navigation_localization_backend: odometry_topic
 navigation_goal_transport: topic
 navigation_status_transport: internal_pose_evaluator
 navigation_cancel_transport: none
+navigation_backend_profile: topic_pose_evaluator

@@ -10,3 +10,4 @@ require_verified_field_asset: true
 required_field_asset_verification_scope: contract
 require_detector_manifest_in_deploy: true
 model_manifest_path: config/manifests/baseline_deploy_detector_manifest.json
+field_asset_release_manifest_path: config/field_assets/releases/mowen_raicom_contract_release.yaml
