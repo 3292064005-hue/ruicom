@@ -1,16 +1,73 @@
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
+
+# Python packaging and test reports
+*.egg-info/
+.eggs/
+build/
+dist/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Local virtual environments, including conda project envs
 .venv/
 venv/
-build/
+env/
+ENV/
+.conda/
+conda-env/
+
+# Local environment overrides and secrets
+.env
+.env.*
+!.env.example
+
+# ROS/catkin/colcon build products and runtime logs
 devel/
 install/
 log/
-*.log
+logs/
+.catkin_tools/
+.colcon/
+compile_commands.json
+
+# ROS runtime artifacts
 *.bag
+*.bag.active
+*.db3
+*.mcap
+*.log
+rosout*.log
+
+# Project-generated mission artifacts
+mission_log.jsonl
+mission_manager_events.jsonl
+execution_trace.jsonl
+recovery_trace.jsonl
+vision_events.jsonl
+summary_snapshot*.json
+final_summary*.json
+final_summary*.csv
+
+# Firmware and embedded build products
+.pio/
+firmware/**/.pio/
+
+# Archives and local OS/editor noise
 *.zip
+*.tar
+*.tar.gz
+*.tgz
+*.swp
+*.tmp
 .DS_Store
+Thumbs.db

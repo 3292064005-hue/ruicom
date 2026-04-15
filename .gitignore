@@ -1,0 +1,34 @@
+# Repository-level local artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local Python/conda environments created beside the ROS package
+.venv/
+venv/
+env/
+ENV/
+.conda/
+conda-env/
+
+# Catkin workspaces and ROS logs at the checkout root
+build/
+devel/
+install/
+log/
+logs/
+.catkin_tools/
+.colcon/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
