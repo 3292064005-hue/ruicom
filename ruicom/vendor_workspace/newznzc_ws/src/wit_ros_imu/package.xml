@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>wit_ros_imu</name>
+  <version>1.0.0</version>
+  <description>WIT IMU integration wrapper.</description>
+  <maintainer email="chen@ruikang.dev">chen</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

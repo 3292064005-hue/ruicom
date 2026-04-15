@@ -1,5 +1,14 @@
 # MO-SERGEANT 外部 vendor 工作空间接入说明
 
+## 2026-04-14 real-field updates
+
+- `mowen_vendor_runtime.launch` / `mowen_vendor_sidecar.launch` now expose `deploy_grade={contract,reference,field}`.
+- `field` grade is guarded by `vendor_runtime_guard_node.py` and rejects repository-managed fixture launches.
+- `launch/field_real_navigation.launch` and `vendor_workspace/newznzc_ws/src/nav_demo/launch/nav777.launch` now point to a real `map_server + chassis_odometry_node + amcl + move_base` chain.
+- `vendor_workspace/newznzc_ws/src/car_bringup/scripts/newt.py` is now a working serial bridge instead of a fixture stub.
+- camera/lidar/imu wrapper launches no longer route into repository synthetic publishers; they now act as integration wrappers around externally provided driver launches.
+
+
 本仓库**不内置**墨问原厂专有工作空间，但现在提供了明确的外部接入入口：
 
 - `launch/mowen_vendor_runtime.launch`
@@ -43,7 +52,7 @@
 
 ## 推荐启动方式
 
-在 `mowen_vendor_runtime.launch` 中，本仓库内部会先进入 `reference_field_deploy.launch`，默认加载 `config/profiles/reference_deploy/platform.yaml`、`config/profiles/reference_deploy/vision.yaml`、`config/profiles/reference_deploy/mission.yaml` 与 `config/profiles/reference_deploy/system_manager.yaml`。仓库内置的 `mowen_raicom_reference_field_verified` 与 `config/manifests/mowen_reference_field_detector_manifest.json` 只服务于参考闭环；真实 `field_deploy.launch` 仍必须通过 `field_asset_id/field_asset_path` 与 `model_manifest_path` 显式覆盖为实测资产。外部 vendor 的 upstream 话题覆盖会直接透传给受管 `platform_bridge_node`，因此 bridge 仍然处在 system manager 监督下，而不是额外单起脱离 required_nodes 的实例。受控 vendor wrapper `tools/run_managed_vendor_runtime.py` 现在会读取 `mowen_mo_sergeant_managed_bundle.yaml` 的 `startup_sequence`，把 workspace 里的 `newt.py` / `nav777.launch` / 相机 / 雷达 / IMU 入口渲染成临时 roslaunch，再在同一启动图中接入仓内 `mowen_vendor_sidecar.launch`。
+在 `mowen_vendor_runtime.launch` 中，本仓库内部现在由 `deploy_grade` 显式决定进入 `contract_deploy.launch`、`reference_field_deploy.launch` 或 `real_field_deploy.launch`。 该 deploy 主链现在还会同步起受管 `behavior_runtime_node / behavior_executor_node`，用于消费 `recon/behavior_command`，向外部动作执行运行时发布 `recon/platform/behavior_execution/request` / `cancel`，并把下游 `recon/platform/behavior_execution/result` 规整回 `recon/behavior_feedback`。比赛 DSL 中的 `hazard_avoid` / `facility_attack` 因此不再依赖仓内定时自完成回执。仓库内置的 `mowen_raicom_reference_field_verified` 与 `config/manifests/mowen_reference_field_detector_manifest.json` 只服务于参考闭环；真实 `field_deploy.launch` 仍必须通过 `field_asset_id/field_asset_path` 与 `model_manifest_path` 显式覆盖为实测资产。外部 vendor 的 upstream 话题覆盖会直接透传给受管 `platform_bridge_node`，因此 bridge 仍然处在 system manager 监督下，而不是额外单起脱离 required_nodes 的实例。受控 vendor wrapper `tools/run_managed_vendor_runtime.py` 现在会读取 `mowen_mo_sergeant_managed_bundle.yaml` 的 `startup_sequence`，把 workspace 里的 `newt.py` / `nav777.launch` / 相机 / 雷达 / IMU 入口渲染成临时 roslaunch，并把 `vendor_*_launch` / `enable_vendor_*` / `allow_command_fallback` 等关键 seam 参数完整透传，再在同一启动图中接入仓内 `mowen_vendor_sidecar.launch`。
 同时，仓库内的 `deploy.launch` / `baseline_deploy.launch` 仍保留为 contract-smoke 级入口，不强制要求外部 vendor bundle 已解析；对应的 `config/profiles/baseline/platform.yaml` 只做 advisory 级 preflight，避免仓库自带的 Noetic smoke/rostest 在未提供 `newznzc_ws` 时被默认硬门禁堵死。
 
 ### 方式一：直接提供外部 launch 路径
@@ -78,6 +87,10 @@ roslaunch ruikang_recon_baseline mowen_vendor_runtime.launch \
 
 边界要写清楚：如果原厂 launch 内部已经把某些 topic 写成绝对路径，那么 group namespace 不会改写这些绝对 topic，此时仍需手工覆盖 `camera_topic`、`odom_topic`、`amcl_pose_topic`、`move_base_action_name`，以及 `upstream_feedback_topic`、`upstream_odom_topic`、`upstream_navigation_status_topic`、`upstream_command_topic`。
 
+
+
+对 field grade 还要额外注意：相机 / 雷达 / IMU 的 vendor wrapper 现在支持 `driver_launch` 与 `require_driver_launch`。在 `field` 级运行时，如果外部驱动 launch 没有显式给出，wrapper 会 fail-fast，而不是静默空跑。
+另外，历史 direct vendor 入口（`nav_demo/launch/nav777.launch`、`nav_demo/launch/nav_c.launch`、`car_bringup/launch/gmapping.launch`）现在也会把雷达/IMU wrapper 以 `require_driver_launch:=true` 的方式接入，因此 direct path 与 sidecar field path 在驱动门禁强度上保持一致，不再允许仅靠 wrapper 声明就静默空跑。
 
 ## vendor 绑定证据链
 
@@ -235,3 +248,33 @@ roslaunch ruikang_recon_baseline mowen_vendor_runtime.launch   field_asset_path:
 ## authoritative replay
 
 `mission_recorder_node` finalize 后现在会额外写出 `authoritative_replay_manifest.json`，把 dynamic summary、runtime evidence、schema 信息与关键 artifact 绑定为单一 replay 入口，便于后续回放、审计与赛后复核。
+
+
+## Behavior runtime and field release production-line updates
+
+- Added `behavior_runtime_node.py` as the repository-managed downstream execution runtime. It consumes `recon/platform/behavior_execution/request`, publishes concrete commands on `cmd_vel_raw` and `recon/platform/behavior_execution/actuator_command`, observes `recon/platform/bridge_state` and `recon/detections`, and emits explicit terminal receipts on `recon/platform/behavior_execution/result`.
+- Added `tools/validate_managed_vendor_bundle.py` so managed vendor bundles can be validated against one concrete external workspace before deploy handoff. CI/Noetic verification now validate one external managed vendor workspace bundle. When `RUIKANG_VENDOR_WORKSPACE_ROOT` is not provided, the workflows provision an external managed workspace bundle from the repository templates first; the repository-local fixture itself is never accepted as an external workspace unless an explicit local allow flag is used.
+- Added `tools/build_field_asset_release.py` so measured/reference/contract field asset release manifests can be materialized from explicit inputs instead of hand-editing YAML.
+
+
+- Added the full in-repository actuator confirmation chain: `behavior_actuator_node.py` -> `vendor_actuator_bridge_node.py` -> `vendor_actuator_device_node.py` -> `vendor_actuator_feedback_node.py`. `facility_attack` success now depends on actuator-specific raw result confirmation rather than generic `base_feedback_raw`. This closes the repository-level produced/consumed gap and removes the prior timer-based self-confirmation path. It is still a repository-controlled integration chain: real hardware execution remains subject to external vendor workspace, ROS runtime, and device-side confirmation in the target environment.
+
+
+## Competition semantics and managed chassis bridge
+
+For the competition workflow, repository-local integration now covers two extra seams that were previously only implicit:
+
+- **Competition semantic perception** through `competition_perception_node`, which upgrades detector outputs into mission-facing classes that the competition task graphs can consume directly.
+- **Managed upper-computer serial bridge** through `mowen_serial_protocol.py` and `mowen_serial_bridge_node.py`, plus a portable firmware-side reference implementation in `firmware/mowen_chassis_controller/`.
+
+The vendor documentation still shows the original ROS-side pattern of running `newt.py` to connect the chassis and `nav777.launch` for navigation bringup. Those upstream steps remain the reference external runtime contract; the repository additions here formalize and test the managed seam around them, but they do not replace hardware-side acceptance.
+
+## 底盘固件目标构建
+
+现在仓库内同时保留 host reference runtime 和 AT32 target runtime：
+
+```bash
+bash tools/build_at32_firmware.sh
+```
+
+该脚本会在 `firmware/mowen_chassis_controller/at32/build/` 生成 `mowen_chassis_at32.elf` 与 `mowen_chassis_at32.bin`，用于真实板级联调前的目标构建收口。

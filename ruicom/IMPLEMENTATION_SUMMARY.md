@@ -18,6 +18,7 @@
 - **P0-02b field asset release 收口**：field asset 不再只是一张裸 YAML；mission / vision 新增 `field_asset_release_manifest_path`，release 会把 route、named_regions、map、calibration 与 detector scope 作为单一发布单元校验。
 - **P1-02b task DSL 落地**：reference / field deploy 新增 `task_dsl_path`，运行时会基于 authoritative route 降低出 `tasks`，并允许 deploy 线同时保留 route 真值与 task graph。
 - **P0-02 / P1-02 / P1-03 / P2-02 贯通**：新增 `behavior_actions.py` 与 `navigation_execution.py`，将 `hazard_avoid`、`facility_attack(command_confirmed)` 升级为显式动作后端；mission / recorder / system_manager / platform_bridge 统一传播 `runtime_grade`；platform bridge 接入 ultrasonic / IMU / voice / PS2 并产出 runtime evidence；仓库新增 `tools/validate_acceptance_tiers.py` 固化 contract / reference / field 三级验收阶梯。
+- **P0-02c 行为执行节点真落地**：新增 `behavior_executor_core.py` / `behavior_runtime_node / behavior_executor_node.py` 与 deploy 专用 `behavior_executor.yaml`，将 `recon/behavior_command -> recon/behavior_feedback` 变为仓内真实消费链；`core.launch` / `deploy.launch` / `reference_field_deploy.launch` / `real_field_deploy.launch` / `field_deploy.launch` 已同步起节点并把 `behavior_executor_node` 纳入 system_manager readiness。
 
 ### P1
 - **P1-01 feedback 语义收硬**：`platform_bridge_core.py` 不再把 odom heartbeat 默认等价为执行反馈；MO-SERGEANT deploy 默认要求显式 `recon/platform/base_feedback`，odom 仅可在允许时作为 fallback 或 observability。
@@ -50,7 +51,7 @@
 ## 三、验证边界
 
 ### 已静态确认
-- mission / platform / safety / field asset / navigation contract 主链已收口
+- mission / platform / safety / field asset / navigation contract 在仓内代码级主链已收口；deploy smoke 现已走 deploy 主入口与严格 deploy vision 配置，但真实硬件/赛场环境仍需外部运行时验证
 - 文档、launch、profile、validator 已同步
 
 ### 已沙箱验证
@@ -100,3 +101,28 @@
 - Added managed vendor sidecar entrypoints and repo-visible preflight checks.
 - Added canonical `real_field_deploy.launch` and preserved `field_deploy.launch` as an alias.
 - Added `runtime_metrics.json` artifact and stronger submission-contract identity checks.
+
+
+## Behavior runtime and field release production-line updates
+
+- Added `behavior_runtime_node.py` as the repository-managed downstream execution runtime. It consumes `recon/platform/behavior_execution/request`, publishes concrete commands on `cmd_vel_raw` and `recon/platform/behavior_execution/actuator_command`, observes `recon/platform/bridge_state` and `recon/detections`, and emits explicit terminal receipts on `recon/platform/behavior_execution/result`.
+- Added `tools/validate_managed_vendor_bundle.py` so managed vendor bundles can be validated against one concrete external workspace before deploy handoff. CI/Noetic verification now validate one external managed vendor workspace bundle. When `RUIKANG_VENDOR_WORKSPACE_ROOT` is not provided, the workflows provision an external managed workspace bundle from the repository templates first; the repository-local fixture itself is never accepted as an external workspace unless an explicit local allow flag is used.
+- Added `tools/build_field_asset_release.py` so measured/reference/contract field asset release manifests can be materialized from explicit inputs instead of hand-editing YAML.
+
+
+- Added the full in-repository actuator confirmation chain: `behavior_actuator_node.py` -> `vendor_actuator_bridge_node.py` -> `vendor_actuator_device_node.py` -> `vendor_actuator_feedback_node.py`. `facility_attack` success now depends on actuator-specific raw result confirmation rather than generic `base_feedback_raw`. This closes the repository-level produced/consumed gap and removes the prior timer-based self-confirmation path. It is still a repository-controlled integration chain: real hardware execution remains subject to external vendor workspace, ROS runtime, and device-side confirmation in the target environment.
+
+
+## Additional v10 scope: competition perception and chassis stack
+
+This revision also lands two missing areas required by the current scope:
+
+1. **Competition perception semantics**
+   - Added `competition_perception_node` and deploy profiles for competition-oriented semantic outputs.
+   - The node upgrades raw detection classes into mission-facing semantic classes (`enemy_soldier`, `friendly_soldier`, `unknown_soldier`, `confirmed_mine`) with temporal confirmation and simple association rules.
+
+2. **Upper-computer and chassis-controller code**
+   - Added `mowen_serial_protocol.py` plus `mowen_serial_bridge_node.py` for the upper-computer serial bridge.
+   - Added `firmware/mowen_chassis_controller/` as a portable PlatformIO-oriented firmware core for the AT32-class chassis controller path.
+
+These are code-level landings and testable logic in the sandbox. They do **not** claim real hardware flashing, ROS graph bringup, or competition-field acceptance.

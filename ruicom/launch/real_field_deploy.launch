@@ -1,14 +1,24 @@
 <launch>
   <arg name="namespace" default="" />
+  <arg name="enable_synthetic" default="false" />
   <arg name="enable_vision" default="true" />
   <arg name="enable_mission" default="true" />
   <arg name="enable_recorder" default="true" />
   <arg name="enable_safety" default="true" />
   <arg name="output_root" default="" />
+  <arg name="profile_synthetic_config" default="" />
   <arg name="profile_platform_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/platform.yaml" />
   <arg name="profile_recorder_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/recorder.yaml" />
   <arg name="profile_safety_config" default="$(find ruikang_recon_baseline)/config/profiles/baseline/safety.yaml" />
   <arg name="profile_system_manager_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/system_manager.yaml" />
+  <arg name="profile_behavior_executor_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/behavior_executor.yaml" />
+  <arg name="profile_behavior_runtime_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/behavior_runtime.yaml" />
+  <arg name="profile_behavior_actuator_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/behavior_actuator.yaml" />
+  <arg name="profile_vendor_actuator_feedback_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/vendor_actuator_feedback.yaml" />
+  <arg name="profile_vendor_actuator_bridge_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/vendor_actuator_bridge.yaml" />
+  <arg name="profile_vendor_actuator_device_config" default="$(find ruikang_recon_baseline)/config/profiles/field_deploy/vendor_actuator_device.yaml" />
+  <arg name="profile_competition_perception_config" default="$(find ruikang_recon_baseline)/config/profiles/field_competition/competition_perception.yaml" />
+  <arg name="enable_competition_perception" default="false" />
   <arg name="camera_topic" default="" />
   <arg name="detections_topic" default="" />
   <arg name="odom_topic" default="" />
@@ -25,6 +35,9 @@
   <arg name="upstream_navigation_status_topic" default="" />
   <arg name="upstream_command_topic" default="" />
   <arg name="enable_platform_bridge" default="true" />
+  <arg name="enable_behavior_executor" default="true" />
+  <arg name="enable_behavior_runtime" default="true" />
+  <arg name="enable_behavior_actuator" default="true" />
   <arg name="field_asset_id" default="" />
   <arg name="field_asset_path" default="" />
   <arg name="field_asset_package_root" default="" />
@@ -40,6 +53,10 @@
     <arg name="enable_recorder" value="$(arg enable_recorder)" />
     <arg name="enable_safety" value="$(arg enable_safety)" />
     <arg name="enable_platform_bridge" value="$(arg enable_platform_bridge)" />
+    <arg name="enable_behavior_executor" value="$(arg enable_behavior_executor)" />
+    <arg name="enable_behavior_runtime" value="$(arg enable_behavior_runtime)" />
+    <arg name="enable_behavior_actuator" value="$(arg enable_behavior_actuator)" />
+    <arg name="enable_competition_perception" value="$(arg enable_competition_perception)" />
     <arg name="output_root" value="$(arg output_root)" />
     <arg name="profile_synthetic_config" value="" />
     <arg name="profile_platform_config" value="$(arg profile_platform_config)" />
@@ -48,6 +65,13 @@
     <arg name="profile_recorder_config" value="$(arg profile_recorder_config)" />
     <arg name="profile_safety_config" value="$(arg profile_safety_config)" />
     <arg name="profile_system_manager_config" value="$(arg profile_system_manager_config)" />
+    <arg name="profile_behavior_executor_config" value="$(arg profile_behavior_executor_config)" />
+    <arg name="profile_behavior_runtime_config" value="$(arg profile_behavior_runtime_config)" />
+    <arg name="profile_behavior_actuator_config" value="$(arg profile_behavior_actuator_config)" />
+    <arg name="profile_vendor_actuator_feedback_config" value="$(arg profile_vendor_actuator_feedback_config)" />
+    <arg name="profile_vendor_actuator_bridge_config" value="$(arg profile_vendor_actuator_bridge_config)" />
+    <arg name="profile_vendor_actuator_device_config" value="$(arg profile_vendor_actuator_device_config)" />
+    <arg name="profile_competition_perception_config" value="$(arg profile_competition_perception_config)" />
     <arg name="camera_topic" value="$(arg camera_topic)" />
     <arg name="detections_topic" value="$(arg detections_topic)" />
     <arg name="odom_topic" value="$(arg odom_topic)" />

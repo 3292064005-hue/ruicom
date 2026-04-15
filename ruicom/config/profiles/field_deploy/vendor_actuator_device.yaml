@@ -1,0 +1,3 @@
+runtime_grade: field
+device_mode: external_ack
+external_ack_topic: recon/platform/vendor/actuator_device_ack

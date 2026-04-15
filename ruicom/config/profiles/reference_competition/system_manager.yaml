@@ -1,0 +1,20 @@
+required_nodes:
+- vision_counter_node
+- competition_perception_node
+- vendor_actuator_bridge_node
+- vendor_actuator_device_node
+- vendor_actuator_feedback_node
+- behavior_actuator_node
+- behavior_runtime_node
+- behavior_executor_node
+- mission_manager_node
+- mission_recorder_node
+- cmd_safety_mux_node
+- platform_bridge_node
+readiness_requirements:
+  competition_perception_node:
+  - input_detections_topic_declared
+  - output_detections_topic_declared
+  - input_topic_bound
+  - semantic_catalog_ready
+  - input_fresh

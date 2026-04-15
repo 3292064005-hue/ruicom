@@ -1,0 +1,18 @@
+frame_region_adapter_type: named_regions
+strict_backend: true
+profile_role: deploy
+detector_schema_policy: subset_allowed
+publish_debug_image: false
+publish_json_debug_topics: false
+lifecycle_managed: true
+field_asset_id: mowen_raicom_reference_field_verified
+field_asset_path: ''
+field_asset_package_root: ''
+require_verified_field_asset: true
+required_field_asset_verification_scope: reference
+require_detector_manifest_in_deploy: false
+model_manifest_path: config/manifests/mowen_reference_field_detector_manifest.json
+field_asset_release_manifest_path: config/field_assets/releases/mowen_raicom_reference_release.yaml
+detector_type: color_blob
+allowed_deploy_detector_types: [onnx, color_blob]
+runtime_grade: reference

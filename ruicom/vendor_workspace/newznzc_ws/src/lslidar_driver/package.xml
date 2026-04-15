@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>lslidar_driver</name>
+  <version>1.0.0</version>
+  <description>LSLidar integration wrapper.</description>
+  <maintainer email="chen@ruikang.dev">chen</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

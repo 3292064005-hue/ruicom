@@ -183,6 +183,9 @@ class RepositoryConsistencyTest(unittest.TestCase):
             'enable_recorder': '$(arg enable_recorder)',
             'enable_safety': '$(arg enable_safety)',
             'enable_platform_bridge': '$(arg enable_platform_bridge)',
+            'enable_behavior_executor': '$(arg enable_behavior_executor)',
+            'enable_behavior_runtime': '$(arg enable_behavior_runtime)',
+            'enable_behavior_actuator': '$(arg enable_behavior_actuator)',
             'output_root': '$(arg output_root)',
             'profile_synthetic_config': '$(arg profile_synthetic_config)',
             'profile_platform_config': '$(arg profile_platform_config)',
@@ -191,6 +194,17 @@ class RepositoryConsistencyTest(unittest.TestCase):
             'profile_recorder_config': '$(arg profile_recorder_config)',
             'profile_safety_config': '$(arg profile_safety_config)',
             'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'profile_behavior_executor_config': '$(arg profile_behavior_executor_config)',
+            'common_behavior_runtime_config': '$(arg common_behavior_runtime_config)',
+            'profile_behavior_runtime_config': '$(arg profile_behavior_runtime_config)',
+            'common_behavior_actuator_config': '$(arg common_behavior_actuator_config)',
+            'profile_behavior_actuator_config': '$(arg profile_behavior_actuator_config)',
+            'common_vendor_actuator_feedback_config': '$(arg common_vendor_actuator_feedback_config)',
+            'common_vendor_actuator_bridge_config': '$(arg common_vendor_actuator_bridge_config)',
+            'common_vendor_actuator_device_config': '$(arg common_vendor_actuator_device_config)',
+            'profile_vendor_actuator_feedback_config': '$(arg profile_vendor_actuator_feedback_config)',
+            'profile_vendor_actuator_bridge_config': '$(arg profile_vendor_actuator_bridge_config)',
+            'profile_vendor_actuator_device_config': '$(arg profile_vendor_actuator_device_config)',
             'camera_topic': '$(arg camera_topic)',
             'detections_topic': '$(arg detections_topic)',
             'odom_topic': '$(arg odom_topic)',
@@ -250,6 +264,8 @@ class RepositoryConsistencyTest(unittest.TestCase):
             ROOT / 'tests/dynamic_schema_integration_namespace_smoke.test',
             ROOT / 'tests/dynamic_schema_mismatch_smoke.test',
             ROOT / 'tests/demo_profile_smoke.test',
+            ROOT / 'tests/reference_field_runtime_smoke.test',
+            ROOT / 'tests/field_runtime_smoke.test',
             ROOT / 'tests/baseline_deploy_smoke.test',
             ROOT / 'tests/baseline_deploy_feedback_timeout_smoke.test',
         ]
@@ -440,6 +456,7 @@ class RepositoryConsistencyTest(unittest.TestCase):
             'tests/dynamic_schema_mismatch_smoke.py',
             'scripts/fake_move_base_action_server.py',
             'scripts/fake_detection_array_publisher.py',
+            'scripts/behavior_executor_node.py',
             'tools/run_noetic_verification.sh',
         ]:
             with self.subTest(path=rel_path):
@@ -567,7 +584,9 @@ class RepositoryConsistencyTest(unittest.TestCase):
         content = (ROOT / '.github/workflows/noetic-verification.yml').read_text(encoding='utf-8')
         self.assertIn('Dockerfile.noetic', content)
         self.assertIn('tools/run_noetic_verification.sh', content)
-        self.assertIn('docker run --rm ruikang-noetic-verify', content)
+        self.assertIn('docker run --rm', content)
+        self.assertIn('ruikang-noetic-verify bash tools/run_noetic_verification.sh', content)
+        self.assertIn('RUIKANG_VENDOR_WORKSPACE_ROOT', content)
 
     def test_noetic_verification_script_runs_static_validators_and_namespace_smokes(self):
         content = (ROOT / 'tools/run_noetic_verification.sh').read_text(encoding='utf-8')
@@ -861,12 +880,16 @@ class RepositoryConsistencyTest(unittest.TestCase):
 
 
 
-    def test_mowen_vendor_runtime_keeps_bridge_under_managed_reference_deploy(self):
+    def test_mowen_vendor_runtime_keeps_bridge_under_managed_sidecar(self):
         content = (ROOT / 'launch/mowen_vendor_runtime.launch').read_text(encoding='utf-8')
         self.assertIn('launch/mowen_vendor_sidecar.launch', content)
         sidecar = (ROOT / 'launch/mowen_vendor_sidecar.launch').read_text(encoding='utf-8')
         self.assertIn('<arg name="enable_platform_bridge" value="true" />', sidecar)
         self.assertIn('launch/reference_field_deploy.launch', sidecar)
+        self.assertIn('deploy_grade', content)
+        self.assertIn('launch/real_field_deploy.launch', sidecar)
+        self.assertIn('launch/contract_deploy.launch', sidecar)
+        self.assertIn('vendor_runtime_guard_node.py', sidecar)
         self.assertNotIn('<node pkg="ruikang_recon_baseline" type="platform_bridge_node.py" name="platform_bridge_node"', content)
 
     def test_reference_field_deploy_launch_uses_reference_profiles(self):

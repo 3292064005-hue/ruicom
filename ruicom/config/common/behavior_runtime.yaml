@@ -1,0 +1,57 @@
+request_topic: recon/platform/behavior_execution/request
+result_topic: recon/platform/behavior_execution/result
+cancel_topic: recon/platform/behavior_execution/cancel
+command_output_topic: cmd_vel_raw
+actuator_command_topic: recon/platform/behavior_execution/actuator_command
+platform_bridge_state_topic: recon/platform/bridge_state
+detections_topic: recon/detections
+behavior_runtime_state_topic: recon/behavior_runtime/state
+runtime_evidence_topic: recon/runtime/evidence
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: map
+publish_rate_hz: 15.0
+health_heartbeat_hz: 1.0
+time_source_mode: ros
+lifecycle_managed: false
+control_command_topic: recon/system_manager/command
+runtime_grade: integration
+default_command_hold_sec: 0.5
+default_settle_sec: 0.2
+detection_age_sec: 1.5
+platform_state_age_sec: 1.5
+action_specs:
+  hazard_avoid:
+    success_policy: platform_clear
+    command_hold_sec: 0.45
+    settle_sec: 0.2
+    require_platform_feedback: true
+    require_ultrasonic_clear: true
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.35
+    actuator_command:
+      command_name: hazard_detour
+      completion_mode: platform_clear
+  facility_attack:
+    success_policy: detection_confirmed
+    command_hold_sec: 0.2
+    settle_sec: 0.15
+    require_platform_feedback: true
+    require_ultrasonic_clear: false
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.0
+    actuator_command:
+      command_name: facility_attack
+      completion_mode: detection_confirmed
+    confirmation_classes:
+    - enemy
+    required_detection_count: 1
+    max_detection_age_sec: 1.5
+    require_actuator_state: true
+    required_actuator_states:
+    - COMPLETED
+actuator_state_topic: recon/platform/behavior_execution/actuator_state

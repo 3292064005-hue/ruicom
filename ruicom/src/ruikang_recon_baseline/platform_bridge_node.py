@@ -87,7 +87,8 @@ class PlatformBridgeNode:
         self.ultrasonic_sub = rospy.Subscriber(self.config['upstream_ultrasonic_topic'], Range, self._ultrasonic_cb, queue_size=10) if self.config['upstream_ultrasonic_topic'] else None
         self.imu_sub = rospy.Subscriber(self.config['upstream_imu_topic'], Imu, self._imu_cb, queue_size=10) if self.config['upstream_imu_topic'] else None
         self.voice_command_sub = rospy.Subscriber(self.config['upstream_voice_command_topic'], String, self._voice_command_cb, queue_size=20) if self.config['upstream_voice_command_topic'] else None
-        self.ps2_command_sub = rospy.Subscriber(self.config['upstream_ps2_command_topic'], String, self._ps2_command_cb, queue_size=20) if self.config['upstream_ps2_command_topic'] else None
+        self.ps2_command_sub = rospy.Subscriber(self.config['upstream_ps2_command_topic'], String, self._ps2_command_cb, queue_size=20) if self.config['upstream_ps2_command_topic'] and self.config['upstream_ps2_command_topic_type'] == 'std_msgs/String' else None
+        self.ps2_twist_sub = rospy.Subscriber(self.config['upstream_ps2_twist_topic'], Twist, self._ps2_twist_cb, queue_size=20) if self.config['upstream_ps2_twist_topic'] else None
         self.control_command_sub = rospy.Subscriber(self.config['control_command_topic'], String, self._control_command_cb, queue_size=20) if self.config['lifecycle_managed'] else None
 
         self._publish_mode_estop()
@@ -164,7 +165,10 @@ class PlatformBridgeNode:
             'upstream_ultrasonic_topic': str(rospy.get_param('~upstream_ultrasonic_topic', '')).strip(),
             'upstream_imu_topic': str(rospy.get_param('~upstream_imu_topic', '')).strip(),
             'upstream_voice_command_topic': str(rospy.get_param('~upstream_voice_command_topic', '')).strip(),
+            'upstream_voice_command_topic_type': str(rospy.get_param('~upstream_voice_command_topic_type', 'std_msgs/String')).strip() or 'std_msgs/String',
             'upstream_ps2_command_topic': str(rospy.get_param('~upstream_ps2_command_topic', '')).strip(),
+            'upstream_ps2_command_topic_type': str(rospy.get_param('~upstream_ps2_command_topic_type', 'std_msgs/String')).strip() or 'std_msgs/String',
+            'upstream_ps2_twist_topic': str(rospy.get_param('~upstream_ps2_twist_topic', '')).strip(),
             'ultrasonic_min_clearance_m': float(rospy.get_param('~ultrasonic_min_clearance_m', 0.25)),
             'imu_timeout_sec': float(rospy.get_param('~imu_timeout_sec', 1.5)),
         }
@@ -301,6 +305,24 @@ class PlatformBridgeNode:
 
     def _ps2_command_cb(self, msg: String) -> None:
         self._apply_operator_command('ps2', msg.data)
+
+    def _ps2_twist_cb(self, msg: Twist) -> None:
+        """Forward PS2 twist commands only while handle-mode command ownership is active."""
+        if str(self._last_mode).upper() != 'HANDLE':
+            self._emit_runtime_event('ps2_twist_ignored', {'reason': 'mode_not_handle'})
+            return
+        if not self.runtime.processing_allowed:
+            self._emit_runtime_event('ps2_twist_ignored', {'reason': 'runtime_inactive'})
+            return
+        self.command_pub.publish(msg)
+        self._last_command_sec = rospy.get_time()
+        self._last_forwarded_command_sec = self._last_command_sec
+        self._command_forward_count += 1
+        self._emit_runtime_event('ps2_twist_forwarded', {
+            'linear_x': float(msg.linear.x),
+            'linear_y': float(msg.linear.y),
+            'angular_z': float(msg.angular.z),
+        })
 
     def _nav_status_cb(self, msg: GoalStatusArray) -> None:
         payload = {
@@ -469,6 +491,8 @@ class PlatformBridgeNode:
             'upstream_imu_topic': self.config['upstream_imu_topic'],
             'upstream_voice_command_topic': self.config['upstream_voice_command_topic'],
             'upstream_ps2_command_topic': self.config['upstream_ps2_command_topic'],
+            'upstream_ps2_command_topic_type': self.config['upstream_ps2_command_topic_type'],
+            'upstream_ps2_twist_topic': self.config['upstream_ps2_twist_topic'],
             'ultrasonic_range_m': float(self._last_ultrasonic_range_m),
             'ultrasonic_hazard_active': bool(self._ultrasonic_hazard_active),
             'ultrasonic_fresh': bool(self.config['upstream_ultrasonic_topic']) and (rospy.get_time() - self._last_ultrasonic_sec) <= self.config['output_feedback_timeout_sec'],

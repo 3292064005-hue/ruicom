@@ -1,0 +1,24 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="output_root" default="" />
+  <arg name="onnx_model_path" default="" />
+  <arg name="model_manifest_path" default="" />
+  <arg name="field_asset_path" default="" />
+  <arg name="field_asset_id" default="" />
+  <arg name="field_asset_package_root" default="" />
+  <include file="$(find ruikang_recon_baseline)/launch/reference_field_deploy.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
+    <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="field_asset_path" value="$(arg field_asset_path)" />
+    <arg name="field_asset_id" value="$(arg field_asset_id)" />
+    <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+    <arg name="enable_competition_perception" value="true" />
+    <arg name="profile_competition_perception_config" value="$(find ruikang_recon_baseline)/config/profiles/reference_competition/competition_perception.yaml" />
+    <arg name="profile_mission_config" value="$(find ruikang_recon_baseline)/config/profiles/reference_competition/mission.yaml" />
+    <arg name="profile_recorder_config" value="$(find ruikang_recon_baseline)/config/profiles/reference_competition/recorder.yaml" />
+    <arg name="profile_behavior_runtime_config" value="$(find ruikang_recon_baseline)/config/profiles/reference_competition/behavior_runtime.yaml" />
+    <arg name="profile_system_manager_config" value="$(find ruikang_recon_baseline)/config/profiles/reference_competition/system_manager.yaml" />
+  </include>
+</launch>

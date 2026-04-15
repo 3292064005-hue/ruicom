@@ -1,0 +1,36 @@
+detections_topic: recon/competition_detections
+runtime_grade: reference_competition
+action_specs:
+  hazard_avoid:
+    success_policy: platform_clear
+    command_hold_sec: 0.4
+    settle_sec: 0.2
+    require_platform_feedback: true
+    require_ultrasonic_clear: true
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.35
+    actuator_command:
+      command_name: hazard_detour
+      runtime_grade: reference_competition
+  facility_attack:
+    success_policy: detection_confirmed
+    command_hold_sec: 0.2
+    settle_sec: 0.15
+    require_platform_feedback: true
+    require_ultrasonic_clear: false
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.0
+    actuator_command:
+      command_name: facility_attack
+      runtime_grade: reference_competition
+    confirmation_classes:
+    - enemy_soldier
+    required_detection_count: 1
+    max_detection_age_sec: 1.2
+    require_actuator_state: true
+    required_actuator_states:
+    - COMPLETED

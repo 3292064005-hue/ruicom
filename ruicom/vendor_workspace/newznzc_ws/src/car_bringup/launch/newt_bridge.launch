@@ -1,0 +1,17 @@
+<launch>
+  <!-- ruikang/managed_vendor_bundle external workspace wrapper -->
+  <arg name="serial_port" default="$(optenv MOWEN_CHASSIS_SERIAL_PORT /dev/carserial)" />
+  <arg name="baudrate" default="$(optenv MOWEN_CHASSIS_BAUDRATE 115200)" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="feedback_topic" default="recon/platform/vendor/base_feedback_raw" />
+  <arg name="telemetry_topic" default="recon/platform/vendor/chassis_telemetry" />
+  <arg name="legacy_feedback_policy" default="telemetry_required" />
+  <node pkg="car_bringup" type="newt.py" name="newt_bridge" output="screen" required="true">
+    <param name="serial_port" value="$(arg serial_port)" />
+    <param name="baudrate" value="$(arg baudrate)" />
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+    <param name="feedback_topic" value="$(arg feedback_topic)" />
+    <param name="telemetry_topic" value="$(arg telemetry_topic)" />
+    <param name="legacy_feedback_policy" value="$(arg legacy_feedback_policy)" />
+  </node>
+</launch>

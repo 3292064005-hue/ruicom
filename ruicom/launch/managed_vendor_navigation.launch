@@ -1,0 +1,16 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="action_name" default="move_base" />
+  <arg name="pose_topic" default="amcl_pose" />
+  <group ns="$(arg namespace)">
+    <node pkg="ruikang_recon_baseline" type="managed_move_base_action_server.py" name="managed_move_base_action_server" output="screen">
+      <param name="action_name" value="$(arg action_name)" />
+      <param name="pose_topic" value="$(arg pose_topic)" />
+      <param name="goal_completion_delay_sec" value="0.25" />
+      <param name="pose_publish_delay_sec" value="0.05" />
+      <param name="publish_initial_pose" value="true" />
+      <param name="initial_pose_publish_hz" value="10.0" />
+      <param name="stop_initial_pose_after_first_goal" value="true" />
+    </node>
+  </group>
+</launch>

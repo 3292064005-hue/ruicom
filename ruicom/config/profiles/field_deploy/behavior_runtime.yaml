@@ -1,0 +1,43 @@
+lifecycle_managed: true
+runtime_grade: field
+publish_rate_hz: 20.0
+health_heartbeat_hz: 1.0
+default_command_hold_sec: 0.45
+default_settle_sec: 0.25
+detection_age_sec: 1.0
+platform_state_age_sec: 1.0
+action_specs:
+  hazard_avoid:
+    success_policy: platform_clear
+    command_hold_sec: 0.45
+    settle_sec: 0.25
+    require_platform_feedback: true
+    require_ultrasonic_clear: true
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.35
+    actuator_command:
+      command_name: hazard_detour
+      runtime_grade: field
+  facility_attack:
+    success_policy: detection_confirmed
+    command_hold_sec: 0.2
+    settle_sec: 0.15
+    require_platform_feedback: true
+    require_ultrasonic_clear: false
+    command_velocity:
+      linear_x: 0.0
+      linear_y: 0.0
+      angular_z: 0.0
+    actuator_command:
+      command_name: facility_attack
+      runtime_grade: field
+    confirmation_classes:
+    - enemy
+    required_detection_count: 1
+    max_detection_age_sec: 1.0
+    require_actuator_state: true
+    required_actuator_states:
+    - COMPLETED
+actuator_state_topic: recon/platform/behavior_execution/actuator_state

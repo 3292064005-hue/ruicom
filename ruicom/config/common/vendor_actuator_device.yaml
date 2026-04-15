@@ -1,0 +1,16 @@
+raw_command_topic: recon/platform/vendor/actuator_command_raw
+raw_result_topic: recon/platform/vendor/actuator_result_raw
+device_state_topic: recon/platform/vendor/actuator_device_state
+external_ack_topic: recon/platform/vendor/actuator_device_ack
+device_mode: external_ack
+loopback_completion_delay_sec: 0.15
+ack_freshness_sec: 1.0
+publish_rate_hz: 15.0
+health_heartbeat_hz: 1.0
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: map
+time_source_mode: ros
+lifecycle_managed: true
+control_command_topic: recon/system_manager/command
+runtime_grade: integration

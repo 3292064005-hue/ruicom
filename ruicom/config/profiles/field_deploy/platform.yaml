@@ -27,4 +27,11 @@ navigation_status_topic: recon/navigation_status
 platform_bridge_state_topic: recon/platform/bridge_state
 default_control_mode: COMMANDER
 publish_rate_hz: 20.0
+upstream_ultrasonic_topic: ultrasonic/ranges
+upstream_imu_topic: wit/imu
+upstream_voice_command_topic: mowen/voice/command
+upstream_voice_command_topic_type: std_msgs/String
+upstream_ps2_command_topic: mowen/ps2/command
+upstream_ps2_command_topic_type: std_msgs/String
+upstream_ps2_twist_topic: mowen/ps2/cmd_vel
 runtime_grade: field

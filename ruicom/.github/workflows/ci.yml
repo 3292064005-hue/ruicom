@@ -16,8 +16,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest pyyaml
+      - name: Provision managed vendor workspace bundle
+        id: vendor_ws
+        env:
+          RUIKANG_VENDOR_WORKSPACE_ROOT: ${{ vars.RUIKANG_VENDOR_WORKSPACE_ROOT }}
+        run: |
+          if [ -n "${RUIKANG_VENDOR_WORKSPACE_ROOT:-}" ]; then
+            echo "workspace_root=${RUIKANG_VENDOR_WORKSPACE_ROOT}" >> "$GITHUB_OUTPUT"
+          else
+            workspace_root="$(python tools/provision_vendor_workspace_fixture.py)"
+            echo "workspace_root=${workspace_root}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Validate profile contracts
         run: python tools/validate_profile_contracts.py
+      - name: Validate managed vendor bundle manifest
+        run: |
+          python tools/validate_managed_vendor_bundle.py --workspace-root "${{ steps.vendor_ws.outputs.workspace_root }}" --require-external-workspace
+      - name: Validate field asset release
+        run: python tools/validate_field_asset_release.py
       - name: Validate static Python contracts
         run: python tools/validate_static_python_contracts.py
       - name: Validate third-party governance

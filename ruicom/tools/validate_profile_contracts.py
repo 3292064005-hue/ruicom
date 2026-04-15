@@ -110,6 +110,7 @@ def validate_launch_compositions() -> None:
             'profile_recorder_config': '$(arg profile_recorder_config)',
             'profile_safety_config': '$(arg profile_safety_config)',
             'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'profile_behavior_executor_config': '$(arg profile_behavior_executor_config)',
             'model_manifest_path': '$(arg model_manifest_path)',
             'vendor_runtime_contract_path': '$(arg vendor_runtime_contract_path)',
         },
@@ -178,6 +179,7 @@ def validate_launch_compositions() -> None:
             'profile_recorder_config': '$(arg profile_recorder_config)',
             'profile_safety_config': '$(arg profile_safety_config)',
             'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'profile_behavior_executor_config': '$(arg profile_behavior_executor_config)',
             'camera_topic': '$(arg camera_topic)',
             'detections_topic': '$(arg detections_topic)',
             'field_asset_id': '$(arg field_asset_id)',
@@ -207,6 +209,7 @@ def validate_launch_compositions() -> None:
             'profile_recorder_config': '$(arg profile_recorder_config)',
             'profile_safety_config': '$(arg profile_safety_config)',
             'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'profile_behavior_executor_config': '$(arg profile_behavior_executor_config)',
             'camera_topic': '$(arg camera_topic)',
             'detections_topic': '$(arg detections_topic)',
             'field_asset_id': '$(arg field_asset_id)',
@@ -236,6 +239,7 @@ def validate_launch_compositions() -> None:
             'profile_recorder_config': '$(arg profile_recorder_config)',
             'profile_safety_config': '$(arg profile_safety_config)',
             'profile_system_manager_config': '$(arg profile_system_manager_config)',
+            'profile_behavior_executor_config': '$(arg profile_behavior_executor_config)',
             'camera_topic': '$(arg camera_topic)',
             'detections_topic': '$(arg detections_topic)',
             'field_asset_id': '$(arg field_asset_id)',
@@ -387,6 +391,27 @@ def validate_profile(profile_name: str, *, require_vision: bool = True, require_
             raise RuntimeError('profile {} expected region mismatch: vision={} mission={}'.format(profile_name, sorted(left), sorted(right)))
 
 
+
+def validate_behavior_runtime_profile(profile_name: str) -> None:
+    profile_dir = ROOT / 'config' / 'profiles' / profile_name
+    common_payload = load_yaml(ROOT / 'config' / 'common' / 'behavior_runtime.yaml')
+    profile_file = profile_dir / 'behavior_runtime.yaml'
+    profile_payload = load_yaml(profile_file) if profile_file.exists() else {}
+    payload = dict(common_payload)
+    payload.update(profile_payload)
+    if str(payload.get('runtime_grade', '')).strip().lower() not in ('reference', 'field'):
+        raise RuntimeError(f'{profile_name} behavior_runtime runtime_grade must be reference or field')
+    for key in ('request_topic', 'result_topic', 'cancel_topic'):
+        resolved = str(payload.get(key, '') or '').strip()
+        if 'recon/platform/behavior_execution/' not in resolved:
+            raise RuntimeError(f'{profile_name} behavior_runtime {key} must bind repository behavior execution topics')
+    if not str(payload.get('command_output_topic', '')).strip():
+        raise RuntimeError(f'{profile_name} behavior_runtime command_output_topic must not be empty')
+    catalog = dict(payload.get('action_specs', {}) or {})
+    if 'hazard_avoid' not in catalog or 'facility_attack' not in catalog:
+        raise RuntimeError(f'{profile_name} behavior_runtime must provide hazard_avoid and facility_attack specs')
+
+
 def validate_system_manager_profile(profile_name: str) -> None:
     profile_dir = ROOT / 'config' / 'profiles' / profile_name
     common_payload = load_yaml(ROOT / 'config' / 'common' / 'system_manager.yaml')
@@ -402,12 +427,98 @@ def validate_system_manager_profile(profile_name: str) -> None:
         raise RuntimeError('profile {} system_manager.required_nodes must include mission_manager_node'.format(profile_name))
     if 'vision_counter_node' not in required_nodes:
         raise RuntimeError('profile {} system_manager.required_nodes must include vision_counter_node'.format(profile_name))
+    if 'vendor_actuator_bridge_node' in required_nodes and 'vendor_actuator_device_node' in required_nodes and required_nodes.index('vendor_actuator_bridge_node') > required_nodes.index('vendor_actuator_device_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate vendor_actuator_bridge_node before vendor_actuator_device_node'.format(profile_name))
+    if 'vendor_actuator_device_node' in required_nodes and 'vendor_actuator_feedback_node' in required_nodes and required_nodes.index('vendor_actuator_device_node') > required_nodes.index('vendor_actuator_feedback_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate vendor_actuator_device_node before vendor_actuator_feedback_node'.format(profile_name))
+    if 'vendor_actuator_feedback_node' in required_nodes and 'behavior_actuator_node' in required_nodes and required_nodes.index('vendor_actuator_feedback_node') > required_nodes.index('behavior_actuator_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate vendor_actuator_feedback_node before behavior_actuator_node'.format(profile_name))
+    if 'behavior_actuator_node' in required_nodes and 'behavior_runtime_node' in required_nodes and required_nodes.index('behavior_actuator_node') > required_nodes.index('behavior_runtime_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate behavior_actuator_node before behavior_runtime_node'.format(profile_name))
+    if 'behavior_runtime_node' in required_nodes and 'behavior_executor_node' in required_nodes and required_nodes.index('behavior_runtime_node') > required_nodes.index('behavior_executor_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate behavior_runtime_node before behavior_executor_node'.format(profile_name))
+    if 'behavior_executor_node' in required_nodes and required_nodes.index('behavior_executor_node') > required_nodes.index('mission_manager_node'):
+        raise RuntimeError('profile {} system_manager.required_nodes must activate behavior_executor_node before mission_manager_node'.format(profile_name))
     if float(payload.get('ready_timeout_sec', 0.0) or 0.0) <= 0.0:
         raise RuntimeError('profile {} system_manager.ready_timeout_sec must be > 0'.format(profile_name))
     if float(payload.get('health_freshness_sec', 0.0) or 0.0) <= 0.0:
         raise RuntimeError('profile {} system_manager.health_freshness_sec must be > 0'.format(profile_name))
 
 
+
+
+
+
+
+def validate_vendor_actuator_bridge_profile(profile_name: str) -> None:
+    profile_dir = ROOT / 'config' / 'profiles' / profile_name
+    common_payload = load_yaml(ROOT / 'config' / 'common' / 'vendor_actuator_bridge.yaml')
+    profile_file = profile_dir / 'vendor_actuator_bridge.yaml'
+    profile_payload = load_yaml(profile_file) if profile_file.exists() else {}
+    payload = dict(common_payload)
+    payload.update(profile_payload)
+    for key in ('input_command_topic', 'raw_command_output_topic', 'raw_result_topic'):
+        if not str(payload.get(key, '')).strip():
+            raise RuntimeError(f'{profile_name} vendor_actuator_bridge {key} must not be empty')
+    if profile_name in ('reference_deploy', 'field_deploy') and not bool(payload.get('lifecycle_managed', False)):
+        raise RuntimeError(f'{profile_name} vendor_actuator_bridge must be lifecycle managed')
+
+
+
+def validate_vendor_actuator_device_profile(profile_name: str) -> None:
+    profile_dir = ROOT / 'config' / 'profiles' / profile_name
+    common_payload = load_yaml(ROOT / 'config' / 'common' / 'vendor_actuator_device.yaml')
+    profile_file = profile_dir / 'vendor_actuator_device.yaml'
+    profile_payload = load_yaml(profile_file) if profile_file.exists() else {}
+    payload = dict(common_payload)
+    payload.update(profile_payload)
+    for key in ('raw_command_topic', 'raw_result_topic', 'external_ack_topic'):
+        if not str(payload.get(key, '')).strip():
+            raise RuntimeError(f'{profile_name} vendor_actuator_device {key} must not be empty')
+    mode = str(payload.get('device_mode', '')).strip().lower()
+    if mode not in ('external_ack', 'loopback'):
+        raise RuntimeError(f'{profile_name} vendor_actuator_device.device_mode must be external_ack or loopback')
+    if profile_name in ('reference_deploy', 'field_deploy') and mode != 'external_ack':
+        raise RuntimeError(f'{profile_name} vendor_actuator_device must use device_mode=external_ack')
+
+def validate_vendor_actuator_feedback_profile(profile_name: str) -> None:
+    profile_dir = ROOT / 'config' / 'profiles' / profile_name
+    common_payload = load_yaml(ROOT / 'config' / 'common' / 'vendor_actuator_feedback.yaml')
+    profile_file = profile_dir / 'vendor_actuator_feedback.yaml'
+    profile_payload = load_yaml(profile_file) if profile_file.exists() else {}
+    payload = dict(common_payload)
+    payload.update(profile_payload)
+    for key in ('actuator_command_topic', 'actuator_feedback_topic', 'actuator_result_topic'):
+        if not str(payload.get(key, '')).strip():
+            raise RuntimeError(f'{profile_name} vendor_actuator_feedback {key} must not be empty')
+    if profile_name in ('reference_deploy', 'field_deploy') and not bool(payload.get('lifecycle_managed', False)):
+        raise RuntimeError(f'{profile_name} vendor_actuator_feedback must be lifecycle managed')
+
+
+def validate_behavior_executor_profile(profile_name: str) -> None:
+    profile_dir = ROOT / 'config' / 'profiles' / profile_name
+    common_payload = load_yaml(ROOT / 'config' / 'common' / 'behavior_executor.yaml')
+    profile_file = profile_dir / 'behavior_executor.yaml'
+    profile_payload = load_yaml(profile_file) if profile_file.exists() else {}
+    payload = dict(common_payload)
+    payload.update(profile_payload)
+    if not str(payload.get('default_dispatch_topic', '')).strip():
+        raise RuntimeError('profile {} behavior_executor.default_dispatch_topic must not be empty'.format(profile_name))
+    if not str(payload.get('default_result_topic', '')).strip():
+        raise RuntimeError('profile {} behavior_executor.default_result_topic must not be empty'.format(profile_name))
+    if not str(payload.get('default_cancel_topic', '')).strip():
+        raise RuntimeError('profile {} behavior_executor.default_cancel_topic must not be empty'.format(profile_name))
+    action_specs = dict(payload.get('action_specs', {}) or {})
+    if not action_specs:
+        raise RuntimeError('profile {} behavior_executor.action_specs must not be empty'.format(profile_name))
+    for action_name in ('hazard_avoid', 'facility_attack'):
+        if action_name not in action_specs:
+            raise RuntimeError('profile {} behavior_executor.action_specs must include {}'.format(profile_name, action_name))
+    if profile_name in ('reference_deploy', 'field_deploy'):
+        if not bool(payload.get('require_downstream_dispatch_subscriber', False)):
+            raise RuntimeError('profile {} behavior_executor must require downstream dispatch subscriber'.format(profile_name))
+        if not bool(payload.get('require_downstream_result_publisher', False)):
+            raise RuntimeError('profile {} behavior_executor must require downstream result publisher'.format(profile_name))
 def main() -> int:
     profiles = {
         'baseline': dict(require_vision=True, require_mission=True),
@@ -525,6 +636,12 @@ def main() -> int:
     validate_system_manager_profile('baseline')
     validate_system_manager_profile('field_deploy')
     validate_system_manager_profile('reference_deploy')
+    validate_vendor_actuator_feedback_profile('reference_deploy')
+    validate_behavior_runtime_profile('reference_deploy')
+    validate_behavior_executor_profile('reference_deploy')
+    validate_vendor_actuator_feedback_profile('field_deploy')
+    validate_behavior_runtime_profile('field_deploy')
+    validate_behavior_executor_profile('field_deploy')
     deploy_launch = (ROOT / 'launch' / 'deploy.launch').read_text(encoding='utf-8')
     if 'enable_system_manager' not in deploy_launch:
         raise RuntimeError('deploy.launch must enable the system manager')

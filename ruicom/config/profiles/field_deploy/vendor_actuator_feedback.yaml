@@ -1,0 +1,14 @@
+actuator_command_topic: recon/platform/vendor/actuator_command
+actuator_feedback_topic: recon/platform/vendor/actuator_feedback
+actuator_result_topic: recon/platform/vendor/actuator_result_raw
+cancel_topic: recon/platform/behavior_execution/cancel
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: map
+publish_rate_hz: 15.0
+health_heartbeat_hz: 1.0
+result_timeout_sec: 1.0
+time_source_mode: ros
+lifecycle_managed: true
+control_command_topic: recon/system_manager/command
+runtime_grade: field

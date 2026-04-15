@@ -1,0 +1,12 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="command_topic" default="recon/platform/vendor/actuator_command_raw" />
+  <arg name="ack_topic" default="recon/platform/vendor/actuator_device_ack" />
+  <group ns="$(arg namespace)">
+    <node pkg="ruikang_recon_baseline" type="managed_vendor_actuator_ack_device.py" name="managed_vendor_actuator_ack_device" output="screen">
+      <param name="command_topic" value="/$(arg namespace)/$(arg command_topic)" />
+      <param name="ack_topic" value="/$(arg namespace)/$(arg ack_topic)" />
+      <param name="completion_delay_sec" value="0.15" />
+    </node>
+  </group>
+</launch>

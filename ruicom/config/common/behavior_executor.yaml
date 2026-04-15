@@ -1,0 +1,33 @@
+behavior_command_topic: recon/behavior_command
+behavior_feedback_topic: recon/behavior_feedback
+behavior_executor_state_topic: recon/behavior_executor/state
+runtime_evidence_topic: recon/runtime/evidence
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: map
+publish_rate_hz: 10.0
+health_heartbeat_hz: 1.0
+time_source_mode: ros
+lifecycle_managed: false
+control_command_topic: recon/system_manager/command
+default_pending_to_active_sec: 0.2
+default_dispatch_topic: recon/platform/behavior_execution/request
+default_result_topic: recon/platform/behavior_execution/result
+default_cancel_topic: recon/platform/behavior_execution/cancel
+require_downstream_dispatch_subscriber: false
+require_downstream_result_publisher: false
+action_specs:
+  hazard_avoid:
+    supported_task_types:
+    - hazard_avoid
+    pending_to_active_sec: 0.25
+    dispatch_details:
+      execution_profile: hazard_detour
+      completion_mode: external_confirmed
+  facility_attack:
+    supported_task_types:
+    - facility_attack
+    pending_to_active_sec: 0.25
+    dispatch_details:
+      execution_profile: facility_action
+      completion_mode: external_confirmed

@@ -1,0 +1,8 @@
+<launch>
+  <!-- ruikang/managed_vendor_bundle external workspace wrapper -->
+  <arg name="namespace" default="" />
+  <arg name="map_file" default="$(optenv MOWEN_NAV_MAP_FILE )" />
+  <group ns="$(arg namespace)">
+    <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)" required="true" />
+  </group>
+</launch>

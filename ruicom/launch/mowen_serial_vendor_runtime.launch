@@ -1,0 +1,18 @@
+<launch>
+  <arg name="namespace" default="" />
+  <arg name="serial_port" default="/dev/carserial" />
+  <arg name="baudrate" default="115200" />
+  <arg name="protocol_mode" default="legacy_newt" />
+  <arg name="legacy_feedback_policy" default="telemetry_required" />
+  <group ns="$(arg namespace)">
+    <node pkg="ruikang_recon_baseline" type="mowen_serial_bridge_node.py" name="mowen_serial_bridge_node" output="screen">
+      <param name="serial_port" value="$(arg serial_port)" />
+      <param name="baudrate" value="$(arg baudrate)" />
+      <param name="protocol_mode" value="$(arg protocol_mode)" />
+      <param name="legacy_feedback_policy" value="$(arg legacy_feedback_policy)" />
+      <param name="vendor_command_topic" value="recon/platform/vendor/cmd_vel" />
+      <param name="feedback_topic" value="recon/platform/vendor/base_feedback_raw" />
+      <param name="telemetry_topic" value="recon/platform/vendor/chassis_telemetry" />
+    </node>
+  </group>
+</launch>

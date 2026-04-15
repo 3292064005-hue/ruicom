@@ -1,0 +1,25 @@
+lifecycle_managed: true
+runtime_grade: reference
+publish_rate_hz: 15.0
+health_heartbeat_hz: 1.0
+require_downstream_dispatch_subscriber: true
+require_downstream_result_publisher: true
+default_pending_to_active_sec: 0.2
+default_dispatch_topic: recon/platform/behavior_execution/request
+default_result_topic: recon/platform/behavior_execution/result
+default_cancel_topic: recon/platform/behavior_execution/cancel
+action_specs:
+  hazard_avoid:
+    supported_task_types:
+    - hazard_avoid
+    pending_to_active_sec: 0.25
+    dispatch_details:
+      execution_profile: hazard_detour
+      completion_mode: reference_confirmed
+  facility_attack:
+    supported_task_types:
+    - facility_attack
+    pending_to_active_sec: 0.25
+    dispatch_details:
+      execution_profile: facility_action
+      completion_mode: command_confirmed

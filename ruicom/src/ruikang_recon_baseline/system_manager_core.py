@@ -54,10 +54,17 @@ class SystemManagerDecision:
 def resolve_required_nodes(required_nodes: Iterable[str], enabled_components: Mapping[str, bool]) -> Tuple[str, ...]:
     role_map = {
         'vision_counter_node': 'vision',
+        'competition_perception_node': 'competition_perception',
         'mission_manager_node': 'mission',
         'mission_recorder_node': 'recorder',
         'cmd_safety_mux_node': 'safety',
         'platform_bridge_node': 'bridge',
+        'vendor_actuator_bridge_node': 'behavior_actuator',
+        'vendor_actuator_device_node': 'behavior_actuator_device',
+        'vendor_actuator_feedback_node': 'behavior_actuator',
+        'behavior_actuator_node': 'behavior_actuator',
+        'behavior_runtime_node': 'behavior_runtime',
+        'behavior_executor_node': 'behavior',
     }
     resolved = []
     for item in required_nodes:

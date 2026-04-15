@@ -2,6 +2,7 @@
   <arg name="namespace" default="" />
   <arg name="vendor_namespace" default="" />
   <arg name="vendor_ns_prefix" default="$(eval '/' + arg('vendor_namespace').strip('/') if arg('vendor_namespace').strip('/') else '')" />
+  <arg name="deploy_grade" default="field" />
   <arg name="output_root" default="" />
   <arg name="detections_topic" default="" />
   <arg name="camera_topic" default="$(eval arg('vendor_ns_prefix') + '/camera/rgb/image_raw' if arg('vendor_ns_prefix') else '/camera/rgb/image_raw')" />
@@ -29,6 +30,20 @@
   <arg name="vendor_camera_launch" default="" />
   <arg name="vendor_lidar_launch" default="" />
   <arg name="vendor_imu_launch" default="" />
+  <arg name="vendor_camera_driver_launch" default="$(optenv MOWEN_CAMERA_DRIVER_LAUNCH )" />
+  <arg name="vendor_lidar_driver_launch" default="$(optenv MOWEN_LIDAR_DRIVER_LAUNCH )" />
+  <arg name="vendor_imu_driver_launch" default="$(optenv MOWEN_IMU_DRIVER_LAUNCH )" />
+  <arg name="map_file" default="$(optenv MOWEN_NAV_MAP_FILE )" />
+  <arg name="scan_topic" default="scan" />
+  <arg name="base_frame" default="base_footprint" />
+  <arg name="odom_frame" default="odom" />
+  <arg name="global_frame" default="map" />
+  <arg name="telemetry_topic" default="recon/platform/vendor/chassis_telemetry" />
+  <arg name="imu_topic" default="wit/imu" />
+  <arg name="allow_command_fallback" default="false" />
+  <arg name="serial_port" default="/dev/carserial" />
+  <arg name="baudrate" default="115200" />
+  <arg name="legacy_feedback_policy" default="telemetry_required" />
 
   <arg name="enable_vendor_bringup" default="true" />
   <arg name="enable_vendor_navigation" default="true" />
@@ -50,6 +65,7 @@
     <arg name="namespace" value="$(arg namespace)" />
     <arg name="vendor_namespace" value="$(arg vendor_namespace)" />
     <arg name="vendor_ns_prefix" value="$(arg vendor_ns_prefix)" />
+    <arg name="deploy_grade" value="$(arg deploy_grade)" />
     <arg name="output_root" value="$(arg output_root)" />
     <arg name="detections_topic" value="$(arg detections_topic)" />
     <arg name="camera_topic" value="$(arg camera_topic)" />
@@ -75,6 +91,20 @@
     <arg name="vendor_camera_launch" value="$(arg vendor_camera_launch)" />
     <arg name="vendor_lidar_launch" value="$(arg vendor_lidar_launch)" />
     <arg name="vendor_imu_launch" value="$(arg vendor_imu_launch)" />
+    <arg name="vendor_camera_driver_launch" value="$(arg vendor_camera_driver_launch)" />
+    <arg name="vendor_lidar_driver_launch" value="$(arg vendor_lidar_driver_launch)" />
+    <arg name="vendor_imu_driver_launch" value="$(arg vendor_imu_driver_launch)" />
+    <arg name="map_file" value="$(arg map_file)" />
+    <arg name="scan_topic" value="$(arg scan_topic)" />
+    <arg name="base_frame" value="$(arg base_frame)" />
+    <arg name="odom_frame" value="$(arg odom_frame)" />
+    <arg name="global_frame" value="$(arg global_frame)" />
+    <arg name="telemetry_topic" value="$(arg telemetry_topic)" />
+    <arg name="imu_topic" value="$(arg imu_topic)" />
+    <arg name="allow_command_fallback" value="$(arg allow_command_fallback)" />
+    <arg name="serial_port" value="$(arg serial_port)" />
+    <arg name="baudrate" value="$(arg baudrate)" />
+    <arg name="legacy_feedback_policy" value="$(arg legacy_feedback_policy)" />
     <arg name="enable_vendor_bringup" value="$(arg enable_vendor_bringup)" />
     <arg name="enable_vendor_navigation" value="$(arg enable_vendor_navigation)" />
     <arg name="enable_vendor_camera" value="$(arg enable_vendor_camera)" />

@@ -27,4 +27,59 @@ readiness_requirements:
   - platform_runtime_probe_satisfied
   - vendor_runtime_contract_satisfied
   - vendor_bundle_preflight_satisfied
+  behavior_runtime_node:
+  - request_topic_declared
+  - result_topic_declared
+  - cancel_topic_declared
+  - command_output_topic_declared
+  - execution_catalog_ready
+  - platform_state_fresh
+  - detection_input_fresh
+  - actuator_state_fresh
+  behavior_executor_node:
+  - command_topic_declared
+  - feedback_topic_declared
+  - action_catalog_ready
+  - downstream_binding_declared
+  - downstream_dispatch_ready
+  - downstream_result_ready
+  vendor_actuator_bridge_node:
+  - input_command_topic_declared
+  - raw_command_output_topic_declared
+  - raw_result_topic_declared
+  - command_input_bound
+  - raw_command_output_bound
+  vendor_actuator_device_node:
+  - raw_command_topic_declared
+  - raw_result_topic_declared
+  - external_ack_topic_declared
+  - command_input_bound
+  - raw_result_output_bound
+  - external_ack_bound
+  behavior_actuator_node:
+  - actuator_command_topic_declared
+  - actuator_state_topic_declared
+  - actuator_output_topic_declared
+  - vendor_feedback_topic_declared
+  - actuator_output_bound
+  - downstream_feedback_bound
+  vendor_actuator_feedback_node:
+  - actuator_command_topic_declared
+  - actuator_feedback_topic_declared
+  - actuator_result_topic_declared
+  - command_input_bound
+  - actuator_result_bound
+  - actuator_feedback_output_bound
 runtime_grade: field
+required_nodes:
+- vision_counter_node
+- vendor_actuator_bridge_node
+- vendor_actuator_device_node
+- vendor_actuator_feedback_node
+- behavior_actuator_node
+- behavior_runtime_node
+- behavior_executor_node
+- mission_manager_node
+- mission_recorder_node
+- cmd_safety_mux_node
+- platform_bridge_node

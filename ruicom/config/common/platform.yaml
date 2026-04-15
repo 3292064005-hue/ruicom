@@ -32,6 +32,9 @@ runtime_evidence_topic: recon/runtime/evidence
 upstream_ultrasonic_topic: ''
 upstream_imu_topic: ''
 upstream_voice_command_topic: ''
+upstream_voice_command_topic_type: std_msgs/String
 upstream_ps2_command_topic: ''
+upstream_ps2_command_topic_type: std_msgs/String
+upstream_ps2_twist_topic: ''
 ultrasonic_min_clearance_m: 0.25
 imu_timeout_sec: 1.5

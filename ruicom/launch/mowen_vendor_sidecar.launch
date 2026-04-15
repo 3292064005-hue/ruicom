@@ -2,6 +2,7 @@
   <arg name="namespace" default="" />
   <arg name="vendor_namespace" default="" />
   <arg name="vendor_ns_prefix" default="$(eval '/' + arg('vendor_namespace').strip('/') if arg('vendor_namespace').strip('/') else '')" />
+  <arg name="deploy_grade" default="field" />
   <arg name="output_root" default="" />
   <arg name="detections_topic" default="" />
   <arg name="camera_topic" default="$(eval arg('vendor_ns_prefix') + '/camera/rgb/image_raw' if arg('vendor_ns_prefix') else '/camera/rgb/image_raw')" />
@@ -29,6 +30,20 @@
   <arg name="vendor_camera_launch" default="" />
   <arg name="vendor_lidar_launch" default="" />
   <arg name="vendor_imu_launch" default="" />
+  <arg name="vendor_camera_driver_launch" default="$(optenv MOWEN_CAMERA_DRIVER_LAUNCH )" />
+  <arg name="vendor_lidar_driver_launch" default="$(optenv MOWEN_LIDAR_DRIVER_LAUNCH )" />
+  <arg name="vendor_imu_driver_launch" default="$(optenv MOWEN_IMU_DRIVER_LAUNCH )" />
+  <arg name="map_file" default="$(optenv MOWEN_NAV_MAP_FILE )" />
+  <arg name="scan_topic" default="scan" />
+  <arg name="base_frame" default="base_footprint" />
+  <arg name="odom_frame" default="odom" />
+  <arg name="global_frame" default="map" />
+  <arg name="telemetry_topic" default="recon/platform/vendor/chassis_telemetry" />
+  <arg name="imu_topic" default="wit/imu" />
+  <arg name="allow_command_fallback" default="false" />
+  <arg name="serial_port" default="/dev/carserial" />
+  <arg name="baudrate" default="115200" />
+  <arg name="legacy_feedback_policy" default="telemetry_required" />
 
   <arg name="enable_vendor_bringup" default="true" />
   <arg name="enable_vendor_navigation" default="true" />
@@ -46,14 +61,62 @@
   <arg name="upstream_navigation_status_topic" default="$(eval arg('vendor_ns_prefix') + '/move_base/status')" />
   <arg name="upstream_command_topic" default="$(eval arg('vendor_ns_prefix') + '/cmd_vel' if arg('vendor_ns_prefix') else 'recon/platform/vendor/cmd_vel')" />
 
-  <group ns="$(arg vendor_namespace)">
-    <include if="$(eval arg('enable_vendor_bringup') and arg('vendor_bringup_launch') != '')" file="$(arg vendor_bringup_launch)" />
-    <include if="$(eval arg('enable_vendor_navigation') and arg('vendor_navigation_launch') != '')" file="$(arg vendor_navigation_launch)" />
-    <include if="$(eval arg('enable_vendor_camera') and arg('vendor_camera_launch') != '')" file="$(arg vendor_camera_launch)" />
-    <include if="$(eval arg('enable_vendor_lidar') and arg('vendor_lidar_launch') != '')" file="$(arg vendor_lidar_launch)" />
-    <include if="$(eval arg('enable_vendor_imu') and arg('vendor_imu_launch') != '')" file="$(arg vendor_imu_launch)" />
-  </group>
+  <node pkg="ruikang_recon_baseline" type="vendor_runtime_guard_node.py" name="vendor_runtime_guard_node" ns="$(arg namespace)" output="screen" required="true">
+    <param name="deploy_grade" value="$(arg deploy_grade)" />
+    <param name="vendor_bringup_launch" value="$(arg vendor_bringup_launch)" />
+    <param name="vendor_navigation_launch" value="$(arg vendor_navigation_launch)" />
+    <param name="vendor_camera_launch" value="$(arg vendor_camera_launch)" />
+    <param name="vendor_lidar_launch" value="$(arg vendor_lidar_launch)" />
+    <param name="vendor_imu_launch" value="$(arg vendor_imu_launch)" />
+    <param name="vendor_camera_driver_launch" value="$(arg vendor_camera_driver_launch)" />
+    <param name="vendor_lidar_driver_launch" value="$(arg vendor_lidar_driver_launch)" />
+    <param name="vendor_imu_driver_launch" value="$(arg vendor_imu_driver_launch)" />
+    <param name="enable_vendor_bringup" value="$(arg enable_vendor_bringup)" />
+    <param name="enable_vendor_navigation" value="$(arg enable_vendor_navigation)" />
+    <param name="enable_vendor_camera" value="$(arg enable_vendor_camera)" />
+    <param name="enable_vendor_lidar" value="$(arg enable_vendor_lidar)" />
+    <param name="enable_vendor_imu" value="$(arg enable_vendor_imu)" />
+  </node>
 
+  <group ns="$(arg vendor_namespace)">
+    <include if="$(eval arg('enable_vendor_bringup') and arg('vendor_bringup_launch') != '')" file="$(arg vendor_bringup_launch)">
+      <arg name="serial_port" value="$(arg serial_port)" />
+      <arg name="baudrate" value="$(arg baudrate)" />
+      <arg name="cmd_vel_topic" value="$(arg upstream_command_topic)" />
+      <arg name="feedback_topic" value="$(arg upstream_feedback_topic)" />
+      <arg name="telemetry_topic" value="$(arg telemetry_topic)" />
+      <arg name="legacy_feedback_policy" value="$(arg legacy_feedback_policy)" />
+    </include>
+    <include if="$(eval arg('enable_vendor_navigation') and arg('vendor_navigation_launch') != '')" file="$(arg vendor_navigation_launch)">
+      <arg name="namespace" value="" />
+      <arg name="map_file" value="$(arg map_file)" />
+      <arg name="scan_topic" value="$(arg scan_topic)" />
+      <arg name="odom_topic" value="$(arg upstream_odom_topic)" />
+      <arg name="cmd_vel_topic" value="$(arg upstream_command_topic)" />
+      <arg name="base_frame" value="$(arg base_frame)" />
+      <arg name="odom_frame" value="$(arg odom_frame)" />
+      <arg name="global_frame" value="$(arg global_frame)" />
+      <arg name="telemetry_topic" value="$(arg telemetry_topic)" />
+      <arg name="imu_topic" value="$(arg imu_topic)" />
+      <arg name="use_rviz" value="false" />
+      <arg name="allow_command_fallback" value="$(arg allow_command_fallback)" />
+    </include>
+    <include if="$(eval arg('enable_vendor_camera') and arg('vendor_camera_launch') != '')" file="$(arg vendor_camera_launch)">
+      <arg name="driver_launch" value="$(arg vendor_camera_driver_launch)" />
+      <arg name="camera_topic" value="$(arg camera_topic)" />
+      <arg name="require_driver_launch" value="$(eval arg('deploy_grade') == 'field')" />
+    </include>
+    <include if="$(eval arg('enable_vendor_lidar') and arg('vendor_lidar_launch') != '')" file="$(arg vendor_lidar_launch)">
+      <arg name="driver_launch" value="$(arg vendor_lidar_driver_launch)" />
+      <arg name="scan_topic" value="$(arg scan_topic)" />
+      <arg name="require_driver_launch" value="$(eval arg('deploy_grade') == 'field')" />
+    </include>
+    <include if="$(eval arg('enable_vendor_imu') and arg('vendor_imu_launch') != '')" file="$(arg vendor_imu_launch)">
+      <arg name="driver_launch" value="$(arg vendor_imu_driver_launch)" />
+      <arg name="imu_topic" value="$(arg imu_topic)" />
+      <arg name="require_driver_launch" value="$(eval arg('deploy_grade') == 'field')" />
+    </include>
+  </group>
 
   <node pkg="ruikang_recon_baseline" type="vendor_sidecar_contract_node.py" name="vendor_sidecar_contract_node" ns="$(arg namespace)" output="screen" required="true">
     <param name="require_explicit_feedback_source" value="$(arg require_explicit_feedback_source)" />
@@ -74,7 +137,56 @@
     <param name="output_feedback_topic" value="$(arg upstream_feedback_topic)" />
     <param name="summary_topic" value="recon/platform/vendor_feedback_state" />
   </node>
-  <include file="$(find ruikang_recon_baseline)/launch/reference_field_deploy.launch">
+
+  <include if="$(eval arg('deploy_grade') == 'contract')" file="$(find ruikang_recon_baseline)/launch/contract_deploy.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="detections_topic" value="$(arg detections_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="field_asset_id" value="$(arg field_asset_id)" />
+    <arg name="field_asset_path" value="$(arg field_asset_path)" />
+    <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
+    <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+    <arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
+    <arg name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />
+    <arg name="upstream_control_mode_topic" value="$(arg upstream_control_mode_topic)" />
+    <arg name="upstream_estop_topic" value="$(arg upstream_estop_topic)" />
+    <arg name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />
+    <arg name="upstream_command_topic" value="$(arg upstream_command_topic)" />
+    <arg name="enable_platform_bridge" value="true" />
+  </include>
+
+  <include if="$(eval arg('deploy_grade') == 'reference')" file="$(find ruikang_recon_baseline)/launch/reference_field_deploy.launch">
+    <arg name="namespace" value="$(arg namespace)" />
+    <arg name="output_root" value="$(arg output_root)" />
+    <arg name="camera_topic" value="$(arg camera_topic)" />
+    <arg name="detections_topic" value="$(arg detections_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+    <arg name="amcl_pose_topic" value="$(arg amcl_pose_topic)" />
+    <arg name="move_base_action_name" value="$(arg move_base_action_name)" />
+    <arg name="field_asset_id" value="$(arg field_asset_id)" />
+    <arg name="field_asset_path" value="$(arg field_asset_path)" />
+    <arg name="field_asset_package_root" value="$(arg field_asset_package_root)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="model_manifest_path" value="$(arg model_manifest_path)" />
+    <arg name="onnx_model_path" value="$(arg onnx_model_path)" />
+    <arg name="vendor_runtime_contract_path" value="$(arg vendor_runtime_contract_path)" />
+    <arg name="upstream_feedback_topic" value="$(arg upstream_feedback_topic)" />
+    <arg name="upstream_odom_topic" value="$(arg upstream_odom_topic)" />
+    <arg name="upstream_control_mode_topic" value="$(arg upstream_control_mode_topic)" />
+    <arg name="upstream_estop_topic" value="$(arg upstream_estop_topic)" />
+    <arg name="upstream_navigation_status_topic" value="$(arg upstream_navigation_status_topic)" />
+    <arg name="upstream_command_topic" value="$(arg upstream_command_topic)" />
+    <arg name="enable_platform_bridge" value="true" />
+  </include>
+
+  <include if="$(eval arg('deploy_grade') == 'field')" file="$(find ruikang_recon_baseline)/launch/real_field_deploy.launch">
     <arg name="namespace" value="$(arg namespace)" />
     <arg name="output_root" value="$(arg output_root)" />
     <arg name="camera_topic" value="$(arg camera_topic)" />

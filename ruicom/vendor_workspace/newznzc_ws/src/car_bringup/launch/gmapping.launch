@@ -1,0 +1,61 @@
+<launch>
+  <!-- ruikang/managed_vendor_bundle external workspace wrapper -->
+  <arg name="namespace" default="" />
+  <arg name="scan_topic" default="scan" />
+  <arg name="odom_topic" default="odom" />
+  <arg name="cmd_vel_topic" default="cmd_vel" />
+  <arg name="base_frame" default="base_footprint" />
+  <arg name="odom_frame" default="odom" />
+  <arg name="global_frame" default="map" />
+  <arg name="telemetry_topic" default="recon/platform/vendor/chassis_telemetry" />
+  <arg name="imu_topic" default="wit/imu" />
+  <arg name="use_rviz" default="true" />
+  <arg name="rviz_config" default="$(find nav_demo)/rviz/nav777.rviz" />
+  <arg name="include_lidar" default="true" />
+  <arg name="include_imu" default="true" />
+  <arg name="lidar_driver_launch" default="$(optenv MOWEN_LIDAR_DRIVER_LAUNCH )" />
+  <arg name="imu_driver_launch" default="$(optenv MOWEN_IMU_DRIVER_LAUNCH )" />
+  <arg name="laser_frame" default="laser_link" />
+  <arg name="imu_frame" default="imu_link" />
+  <arg name="laser_xyz" default="0 0 0.15" />
+  <arg name="laser_rpy" default="0 0 0" />
+  <arg name="imu_xyz" default="0 0 0.05" />
+  <arg name="imu_rpy" default="0 0 0" />
+  <arg name="publish_sensor_static_tf" default="true" />
+  <group ns="$(arg namespace)">
+    <node if="$(arg publish_sensor_static_tf)" pkg="tf2_ros" type="static_transform_publisher" name="laser_static_tf" args="$(arg laser_xyz) $(arg laser_rpy) $(arg base_frame) $(arg laser_frame)" />
+    <node if="$(eval arg('publish_sensor_static_tf') and arg('include_imu'))" pkg="tf2_ros" type="static_transform_publisher" name="imu_static_tf" args="$(arg imu_xyz) $(arg imu_rpy) $(arg base_frame) $(arg imu_frame)" />
+    <include if="$(arg include_lidar)" file="$(find lslidar_driver)/launch/lslidar_serial.launch">
+      <arg name="driver_launch" value="$(arg lidar_driver_launch)" />
+      <arg name="scan_topic" value="$(arg scan_topic)" />
+      <arg name="require_driver_launch" value="true" />
+    </include>
+    <include if="$(arg include_imu)" file="$(find wit_ros_imu)/launch/wit_imu.launch">
+      <arg name="driver_launch" value="$(arg imu_driver_launch)" />
+      <arg name="imu_topic" value="$(arg imu_topic)" />
+      <arg name="require_driver_launch" value="true" />
+    </include>
+    <node pkg="ruikang_recon_baseline" type="chassis_odometry_node.py" name="chassis_odometry_node" output="screen" required="true">
+      <param name="telemetry_topic" value="$(arg telemetry_topic)" />
+      <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+      <param name="odom_topic" value="$(arg odom_topic)" />
+      <param name="base_frame" value="$(arg base_frame)" />
+      <param name="odom_frame" value="$(arg odom_frame)" />
+      <param name="imu_topic" value="$(arg imu_topic)" />
+      <param name="allow_command_fallback" value="false" />
+    </node>
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+      <remap from="scan" to="$(arg scan_topic)" />
+      <param name="base_frame" value="$(arg base_frame)" />
+      <param name="map_frame" value="$(arg global_frame)" />
+      <param name="odom_frame" value="$(arg odom_frame)" />
+      <param name="map_update_interval" value="2.0" />
+      <param name="maxUrange" value="8.0" />
+      <param name="linearUpdate" value="0.4" />
+      <param name="angularUpdate" value="0.2" />
+      <param name="particles" value="16" />
+      <param name="delta" value="0.02" />
+    </node>
+    <node if="$(arg use_rviz)" pkg="rviz" type="rviz" name="gmapping_rviz" args="-d $(arg rviz_config)" />
+  </group>
+</launch>

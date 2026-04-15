@@ -1,0 +1,21 @@
+<launch>
+  <!-- ruikang/managed_vendor_bundle external workspace wrapper -->
+  <arg name="namespace" default="" />
+  <arg name="driver_launch" default="$(optenv MOWEN_IMU_DRIVER_LAUNCH )" />
+  <arg name="imu_topic" default="wit/imu" />
+  <arg name="require_driver_launch" default="true" />
+  <arg name="repo_root" default="$(find ruikang_recon_baseline)" />
+  <group ns="$(arg namespace)">
+    <node if="$(arg require_driver_launch)" pkg="ruikang_recon_baseline" type="vendor_launch_guard_node.py" name="imu_driver_guard" output="screen" required="true">
+      <param name="guard_name" value="imu_driver_launch" />
+      <param name="required_path" value="$(arg driver_launch)" />
+      <param name="require_non_empty" value="true" />
+      <param name="must_exist" value="true" />
+      <param name="reject_repo_paths" value="true" />
+      <param name="repo_root" value="$(arg repo_root)" />
+    </node>
+    <include if="$(eval arg('driver_launch') != '')" file="$(arg driver_launch)" />
+    <param name="wit_ros_imu/imu_topic" value="$(arg imu_topic)" />
+    <param name="wit_ros_imu/driver_launch_declared" value="$(eval arg('driver_launch') != '')" />
+  </group>
+</launch>

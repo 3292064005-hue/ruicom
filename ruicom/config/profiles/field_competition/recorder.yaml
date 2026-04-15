@@ -1,0 +1,6 @@
+classes:
+- friendly_soldier
+- enemy_soldier
+- unknown_soldier
+- confirmed_mine
+runtime_grade: field_competition

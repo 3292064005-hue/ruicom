@@ -1,0 +1,9 @@
+detections_topic: recon/competition_detections
+classes:
+- friendly_soldier
+- enemy_soldier
+- unknown_soldier
+- confirmed_mine
+task_dsl_path: config/task_graphs/mowen_field_competition_semantic_tasks.yaml
+task_dsl_format: yaml
+runtime_grade: field_competition

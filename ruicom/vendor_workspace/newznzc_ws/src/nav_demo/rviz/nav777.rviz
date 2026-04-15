@@ -1,0 +1,31 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.7
+      Class: rviz/Map
+      Name: Map
+      Topic: /map
+      Value: true
+    - Class: rviz/PoseWithCovariance
+      Name: AMCL Pose
+      Topic: /amcl_pose
+      Value: true
+    - Class: rviz/LaserScan
+      Name: Scan
+      Topic: /scan
+      Value: true
+    - Class: rviz/Path
+      Name: Global Plan
+      Topic: /move_base/GlobalPlanner/plan
+      Value: true
+    - Class: rviz/Path
+      Name: Local Plan
+      Topic: /move_base/DWAPlannerROS/local_plan
+      Value: true
+  Global Options:
+    Fixed Frame: map

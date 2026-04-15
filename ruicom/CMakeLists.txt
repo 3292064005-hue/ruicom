@@ -46,14 +46,33 @@ catkin_install_python(PROGRAMS
   scripts/mission_recorder_node.py
   scripts/system_manager_node.py
   scripts/cmd_safety_mux_node.py
+  scripts/behavior_executor_node.py
+  scripts/behavior_runtime_node.py
+  scripts/behavior_actuator_node.py
+  scripts/vendor_actuator_bridge_node.py
+  scripts/vendor_actuator_device_node.py
+  scripts/vendor_actuator_feedback_node.py
+  scripts/competition_perception_node.py
+  scripts/mowen_serial_bridge_node.py
+  scripts/managed_vendor_actuator_ack_device.py
+  scripts/managed_vendor_chassis_device.py
+  scripts/managed_move_base_action_server.py
+  scripts/managed_scene_image_publisher.py
+  scripts/fake_vendor_actuator_ack_device.py
+  scripts/fixed_scene_image_publisher.py
+  scripts/fake_vendor_chassis_device.py
+  scripts/fake_vendor_actuator_device.py
   scripts/synthetic_scene_publisher.py
   scripts/fake_move_base_action_server.py
   scripts/fake_detection_array_publisher.py
   scripts/fake_base_feedback_publisher.py
   scripts/fake_twist_publisher.py
   scripts/platform_bridge_node.py
+  scripts/chassis_odometry_node.py
+  scripts/vendor_launch_guard_node.py
   scripts/vendor_feedback_node.py
   scripts/vendor_sidecar_contract_node.py
+  scripts/vendor_runtime_guard_node.py
   tests/demo_pipeline_smoke.py
   tests/baseline_smoke.py
   tests/baseline_contract_smoke.py
@@ -62,6 +81,7 @@ catkin_install_python(PROGRAMS
   tests/baseline_integration_smoke.py
   tests/dynamic_schema_integration_smoke.py
   tests/dynamic_schema_mismatch_smoke.py
+  tests/behavior_runtime_smoke.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -81,4 +101,6 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(tests/dynamic_schema_integration_smoke.test)
   add_rostest(tests/dynamic_schema_integration_namespace_smoke.test)
   add_rostest(tests/dynamic_schema_mismatch_smoke.test)
+  add_rostest(tests/reference_field_runtime_smoke.test)
+  add_rostest(tests/field_runtime_smoke.test)
 endif()

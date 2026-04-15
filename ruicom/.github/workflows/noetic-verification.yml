@@ -10,7 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Provision managed vendor workspace bundle
+        id: vendor_ws
+        env:
+          RUIKANG_VENDOR_WORKSPACE_ROOT: ${{ vars.RUIKANG_VENDOR_WORKSPACE_ROOT }}
+        run: |
+          if [ -n "${RUIKANG_VENDOR_WORKSPACE_ROOT:-}" ]; then
+            echo "workspace_root=${RUIKANG_VENDOR_WORKSPACE_ROOT}" >> "$GITHUB_OUTPUT"
+          else
+            workspace_root="$(python tools/provision_vendor_workspace_fixture.py)"
+            echo "workspace_root=${workspace_root}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build verification image from Dockerfile.noetic
         run: docker build -f Dockerfile.noetic -t ruikang-noetic-verify .
       - name: Run repository Noetic verification container
-        run: docker run --rm ruikang-noetic-verify bash tools/run_noetic_verification.sh
+        run: |
+          docker run --rm             -e RUIKANG_VENDOR_WORKSPACE_ROOT="${{ steps.vendor_ws.outputs.workspace_root }}"             -v "${{ steps.vendor_ws.outputs.workspace_root }}:${{ steps.vendor_ws.outputs.workspace_root }}:ro"             ruikang-noetic-verify bash tools/run_noetic_verification.sh

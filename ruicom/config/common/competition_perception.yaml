@@ -1,0 +1,24 @@
+input_detections_topic: recon/detections
+output_detections_topic: recon/competition_detections
+health_topic: recon/health
+health_typed_topic: recon/health_typed
+health_frame_id: map
+semantic_class_names:
+- friendly_soldier
+- enemy_soldier
+- unknown_soldier
+- confirmed_mine
+stability_window: 5
+min_confirmed_frames: 3
+marker_overlap_iou: 0.08
+marker_center_margin_px: 24
+mine_ground_band_ratio: 0.58
+mine_max_height_ratio: 0.24
+mine_min_width_px: 8
+soldier_min_height_px: 26
+health_heartbeat_hz: 1.0
+input_freshness_sec: 1.5
+time_source_mode: ros
+lifecycle_managed: false
+control_command_topic: recon/system_manager/command
+runtime_grade: competition
